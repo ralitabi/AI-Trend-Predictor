@@ -5,7 +5,7 @@ Predict market trends for Gold, S&P 500, and Bitcoin using a combination of stat
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.135-009688?style=flat-square&logo=fastapi)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-412991?style=flat-square&logo=openai)
-![License](https://img.shields.io/badge/License-Educational-orange?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)
 
 ---
@@ -228,7 +228,7 @@ Returns technical indicators, current RSI and trend signals, and volatility metr
 
 ## License
 
-MIT License — free to use and modify for educational purposes.
+This project is licensed under the [MIT License](LICENSE). See the `LICENSE` file for details.
 
 ---
 
