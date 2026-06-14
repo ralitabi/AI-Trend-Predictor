@@ -155,6 +155,70 @@ def assess_safety(scored: dict, analysis: dict) -> dict:
             "direction": bias, "factors": factors}
 
 
+def assess_market(analysis: dict, htf_trend: str | None = None) -> dict:
+    """Market-condition read — is the tape itself worth trading right now,
+    independent of any one entry? A clean, trending, structured market scores
+    low (green); a choppy, whippy, directionless one scores high (red).
+
+    Returns a 0–100 score (0 = clean/tradeable … 100 = choppy/avoid) for the
+    second meter that sits next to the trade-entry risk meter.
+    """
+    adx = float(analysis.get("adx", 0))
+    vol = analysis.get("volatility", "moderate")
+    votes = analysis.get("votes", {}) or {}
+    up, down, neu = votes.get("up", 0), votes.get("down", 0), votes.get("neutral", 0)
+    tot = up + down + neu or 1
+    breadth = abs(up - down) / tot       # how lopsided the board is (clear lean)
+    neutral_share = neu / tot            # indecision
+
+    cond = 50.0
+    if adx >= 30:
+        cond -= 24
+    elif adx >= 25:
+        cond -= 15
+    elif adx >= 20:
+        cond -= 5
+    elif adx < 15:
+        cond += 18
+    else:
+        cond += 6
+    cond += {"high": 18, "moderate": -8, "low": -4}.get(vol, 0)
+    cond -= 8 if htf_trend in ("up", "down") else -6   # clear HTF structure helps
+    cond -= breadth * 14
+    cond += neutral_share * 12
+    cond = int(max(2, min(98, round(cond))))
+    level = "good" if cond < 38 else "mixed" if cond < 66 else "poor"
+
+    if up > down and adx >= 20:
+        direction = "up"
+    elif down > up and adx >= 20:
+        direction = "down"
+    else:
+        direction = "flat"
+
+    headline = {
+        "good": "Clean, trending market — good conditions to trade",
+        "mixed": "Tradeable but choppy in spots — pick your spots",
+        "poor": "Choppy, directionless tape — hard to trade right now",
+    }[level]
+    factors = [
+        {"label": "Trend clarity",
+         "state": "good" if adx >= 25 else "weak" if adx < 18 else "ok",
+         "detail": f"ADX {round(adx)}"},
+        {"label": "Volatility",
+         "state": "good" if vol == "moderate" else "weak" if vol == "high" else "ok",
+         "detail": vol},
+        {"label": "Structure",
+         "state": "good" if htf_trend in ("up", "down") else "weak",
+         "detail": f"{htf_trend}trend" if htf_trend in ("up", "down") else "no clear HTF"},
+        {"label": "Agreement",
+         "state": "good" if breadth >= 0.3 else "weak" if neutral_share > 0.4 else "ok",
+         "detail": f"{int(breadth * 100)}% lean"},
+    ]
+    return {"level": level, "score": cond, "headline": headline,
+            "direction": direction, "factors": factors}
+
+
 def make_plan(bias: str, price: float, atr_abs: float) -> dict | None:
     """ATR-based trade plan: stop at 1.5x ATR against you, target at 2.5x with
     you (risk:reward 1:1.67). Position-sizing guidance, not a guarantee."""

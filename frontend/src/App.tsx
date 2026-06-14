@@ -341,7 +341,8 @@ function Dashboard() {
       return;
     }
     loadAvgLine(symbol, tf);
-    const ms = INTRADAY.has(tf) ? 15_000 : 60_000;
+    // refresh quickly so the average + its projection visibly track the candles
+    const ms = INTRADAY.has(tf) ? 5000 : 20_000;
     const id = setInterval(() => {
       if (!document.hidden) loadAvgLine(symbol, tf);
     }, ms);

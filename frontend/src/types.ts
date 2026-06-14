@@ -104,6 +104,8 @@ export interface AvgLinePoint {
   time: number;
   value: number;
   color: string;
+  /** "trend" = realized average, "proj" = forward (predicted) projection */
+  seg?: "trend" | "proj";
 }
 
 export interface AvgLineResponse {
@@ -141,11 +143,20 @@ export interface RiskFactor {
 
 export interface SafetyInfo {
   level: "safe" | "caution" | "risky";
-  /** 0 = very safe to act … 100 = very risky. Drives the risk meter needle. */
+  /** 0 = very safe to act … 100 = very risky. Drives the trade risk meter. */
   score: number;
   headline: string;
   action: string;
   direction: string;
+  factors?: RiskFactor[];
+}
+
+export interface MarketInfo {
+  level: "good" | "mixed" | "poor";
+  /** 0 = clean/tradeable … 100 = choppy/avoid. Drives the market meter. */
+  score: number;
+  headline: string;
+  direction: "up" | "down" | "flat";
   factors?: RiskFactor[];
 }
 
@@ -194,6 +205,7 @@ export interface Technical {
   htf: HTF | null;
   plan: TradePlan | null;
   safety?: SafetyInfo;
+  market?: MarketInfo;
   best_window?: BestWindow | null;
 }
 

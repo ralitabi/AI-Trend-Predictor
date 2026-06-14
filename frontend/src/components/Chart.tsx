@@ -86,6 +86,7 @@ export default function Chart({ candles, live, tf, levels, plan, forecast, forec
   const ghostSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const histSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const avgSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const avgProjSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const overlayRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
   const lastBarRef = useRef<Bar | null>(null);
   const lastTickNotify = useRef(0);
@@ -154,9 +155,15 @@ export default function Chart({ candles, live, tf, levels, plan, forecast, forec
       lastValueVisible: false,
     });
 
-    // average trend line — per-point colours (yellow held / orange broke / gray projection)
+    // average trend line — realized part, per-point colours (yellow held / purple broke)
     const avgSeries = chart.addSeries(LineSeries, {
       color: "#f5c518", lineWidth: 2,
+      priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+    });
+    // predicted forward projection of the average — a dashed ORANGE line so it
+    // clearly reads as "where the trend is heading next", not a realized value.
+    const avgProjSeries = chart.addSeries(LineSeries, {
+      color: "#ff8a1f", lineWidth: 2, lineStyle: LineStyle.Dashed,
       priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
     });
 
@@ -166,15 +173,25 @@ export default function Chart({ candles, live, tf, levels, plan, forecast, forec
     ghostSeriesRef.current = ghostSeries;
     histSeriesRef.current = histSeries;
     avgSeriesRef.current = avgSeries;
+    avgProjSeriesRef.current = avgProjSeries;
     return () => chart.remove();
   }, []);
 
-  // average trend line with per-point colours
+  // average trend line: realized part (per-point yellow/purple) on one series,
+  // the predicted forward projection (dashed orange) on a second series so the
+  // two read differently. Split by segment; the projection is anchored to the
+  // last realized point so the dashed line connects cleanly.
   useEffect(() => {
     const series = avgSeriesRef.current;
-    if (!series) return;
-    series.setData(
-      (avgLine ?? []).map((p) => ({ time: p.time as UTCTimestamp, value: p.value, color: p.color })),
+    const proj = avgProjSeriesRef.current;
+    if (!series || !proj) return;
+    const pts = avgLine ?? [];
+    const real = pts.filter((p) => p.seg !== "proj");
+    const projected = pts.filter((p) => p.seg === "proj");
+    series.setData(real.map((p) => ({ time: p.time as UTCTimestamp, value: p.value, color: p.color })));
+    const anchor = real.length ? [{ time: real[real.length - 1].time, value: real[real.length - 1].value }] : [];
+    proj.setData(
+      [...anchor, ...projected].map((p) => ({ time: p.time as UTCTimestamp, value: p.value })),
     );
   }, [avgLine]);
 

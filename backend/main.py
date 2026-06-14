@@ -76,6 +76,7 @@ def _technical_block(analysis: dict, scored: dict, plan: dict | None,
         "htf": {"tf": htf, "trend": htf_trend, "note": scored.get("htf_note")} if htf else None,
         "plan": plan,
         "safety": signal.assess_safety(scored, analysis),
+        "market": signal.assess_market(analysis, htf_trend),
         "best_window": _best_window(symbol),
     }
 

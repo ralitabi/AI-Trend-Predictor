@@ -69,7 +69,7 @@ export default function IndicatorMenu({
             </span>
             <span className="im-special-text">
               <b>Average trend line</b>
-              <span className="im-special-sub">🟡 yellow average · 🟠 orange where the trend broke against the prediction · ⚪ gray projection of where it's heading</span>
+              <span className="im-special-sub">🟡 yellow where the trend held · 🟣 purple where it broke (wrong-prediction branch) · 🟠 dashed orange = the predicted next line</span>
             </span>
           </label>
 

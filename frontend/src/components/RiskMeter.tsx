@@ -1,4 +1,4 @@
-import type { SafetyInfo } from "../types";
+import type { RiskFactor } from "../types";
 
 /** Point on the gauge arc for a given angle (deg, measured CCW from +x axis). */
 function polar(cx: number, cy: number, r: number, deg: number): [number, number] {
@@ -14,54 +14,67 @@ function arc(cx: number, cy: number, r: number, startDeg: number, endDeg: number
   return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
 }
 
-// score (0 = safe … 100 = risky) → angle on the 180°(left)→0°(right) arc
+// score (0 = good/left … 100 = bad/right) → angle on the 180°→0° arc
 const angleFor = (score: number) => 180 - (Math.max(0, Math.min(100, score)) / 100) * 180;
 
-const LEVEL_COLOR: Record<SafetyInfo["level"], string> = {
-  safe: "#16c784",
-  caution: "#f5a623",
-  risky: "#ea3943",
-};
+const TONE_COLOR = { good: "#16c784", mixed: "#f5a623", bad: "#ea3943" } as const;
+
+interface Props {
+  /** small heading above the gauge, e.g. "Trade · 1H" or "Market" */
+  title: string;
+  /** 0 = green/left (good) … 100 = red/right (bad) */
+  score: number;
+  tone: "good" | "mixed" | "bad";
+  /** big readout under the needle, e.g. "RISKY" / "POOR" */
+  label: string;
+  /** one-line subtitle (action or short condition) */
+  sub?: string;
+  factors?: RiskFactor[];
+  /** smaller footprint for the two-up side-by-side layout */
+  compact?: boolean;
+  /** end-cap labels under the arc */
+  leftCap?: string;
+  rightCap?: string;
+}
 
 /**
- * Risk-management gauge: a speedometer-style needle that swings from green
- * (safe to act) through amber to red (stay out), driven by the safety score.
+ * A speedometer-style gauge: a needle that swings from green (left/good) through
+ * amber to red (right/bad), driven by a 0–100 score. Used for both the
+ * trade-entry risk meter and the overall market-condition meter.
  */
-export default function RiskMeter({ safety }: { safety: SafetyInfo }) {
+export default function RiskMeter({
+  title, score, tone, label, sub, factors, compact, leftCap = "SAFE", rightCap = "RISKY",
+}: Props) {
   const cx = 100;
   const cy = 96;
   const r = 78;
-  const score = Math.max(0, Math.min(100, safety.score ?? 50));
-  const needle = angleFor(score);
-  const [nx, ny] = polar(cx, cy, r - 14, needle);
-  const color = LEVEL_COLOR[safety.level];
+  const s = Math.max(0, Math.min(100, score ?? 50));
+  const [nx, ny] = polar(cx, cy, r - 14, angleFor(s));
+  const color = TONE_COLOR[tone];
 
   return (
-    <div className="riskmeter">
+    <div className={compact ? "riskmeter compact" : "riskmeter"}>
+      <div className="rm-title">{title}</div>
       <svg viewBox="0 0 200 116" className="rm-svg" role="img"
-           aria-label={`Risk level ${safety.level}, ${score} of 100`}>
-        {/* zone arcs: green (safe) → amber (caution) → red (risky) */}
+           aria-label={`${title}: ${label}, ${s} of 100`}>
         <path d={arc(cx, cy, r, 180, angleFor(40))} className="rm-zone" stroke="#16c784" />
         <path d={arc(cx, cy, r, angleFor(40), angleFor(68))} className="rm-zone" stroke="#f5a623" />
         <path d={arc(cx, cy, r, angleFor(68), 0)} className="rm-zone" stroke="#ea3943" />
-        {/* needle + hub */}
         <line x1={cx} y1={cy} x2={nx} y2={ny} className="rm-needle" stroke={color} />
         <circle cx={cx} cy={cy} r={6} className="rm-hub" fill={color} />
-        {/* end labels */}
-        <text x={20} y={112} className="rm-end">SAFE</text>
-        <text x={180} y={112} className="rm-end rm-end-r">RISKY</text>
+        <text x={18} y={112} className="rm-end">{leftCap}</text>
+        <text x={182} y={112} className="rm-end rm-end-r">{rightCap}</text>
       </svg>
       <div className="rm-readout">
-        <span className="rm-level" style={{ color }}>{safety.level.toUpperCase()}</span>
-        <span className="rm-action">{safety.action}</span>
+        <span className="rm-level" style={{ color }}>{label}</span>
       </div>
-      <div className="rm-headline">{safety.headline}</div>
-      {safety.factors && safety.factors.length > 0 && (
+      {sub && <div className="rm-sub">{sub}</div>}
+      {factors && factors.length > 0 && (
         <div className="rm-factors">
-          {safety.factors.map((f) => (
+          {factors.map((f) => (
             <span key={f.label} className={`rm-factor rmf-${f.state}`} title={`${f.label}: ${f.detail}`}>
               <span className="rmf-dot" />
-              <span className="rmf-label">{f.label}</span>
+              {!compact && <span className="rmf-label">{f.label}</span>}
               <span className="rmf-detail">{f.detail}</span>
             </span>
           ))}

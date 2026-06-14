@@ -14,17 +14,41 @@ function utcHourLocal(h: number): string {
   return d.toLocaleTimeString([], { hour: "numeric", hour12: true });
 }
 
+const SAFETY_TONE = { safe: "good", caution: "mixed", risky: "bad" } as const;
+const MARKET_TONE = { good: "good", mixed: "mixed", poor: "bad" } as const;
+const MARKET_SUB = {
+  good: "Trending · clean",
+  mixed: "Choppy in spots",
+  poor: "Hard to trade",
+} as const;
+
 export default function TradeSetup({ s }: { s: SignalData }) {
   const pctFrom = (level: number) => (((level - s.price) / s.price) * 100).toFixed(2);
   const nc = s.next_candle;
   const safety = s.safety;
+  const market = s.market;
   const bw = s.best_window;
+  const tfu = s.tf.toUpperCase();
 
   return (
     <CollapsiblePanel title="Trade Setup">
-      {safety && (
-        <div className={`safety safety-${safety.level}`}>
-          <RiskMeter safety={safety} />
+      {(safety || market) && (
+        <div className={`safety safety-${safety?.level ?? "caution"}`}>
+          <div className="meters-row">
+            {safety && (
+              <RiskMeter compact title={`Trade · ${tfu}`} score={safety.score}
+                tone={SAFETY_TONE[safety.level]} label={safety.level.toUpperCase()}
+                sub={safety.action} factors={safety.factors}
+                leftCap="SAFE" rightCap="RISKY" />
+            )}
+            {market && (
+              <RiskMeter compact title={`Market · ${tfu}`} score={market.score}
+                tone={MARKET_TONE[market.level]} label={market.level.toUpperCase()}
+                sub={MARKET_SUB[market.level]} factors={market.factors}
+                leftCap="GOOD" rightCap="CHOPPY" />
+            )}
+          </div>
+          {safety && <div className="meters-headline">{safety.headline}</div>}
           {bw && (
             <div className="safety-time">
               Best hours to trade: <b>{utcHourLocal(bw.start_utc)} – {utcHourLocal(bw.end_utc)}</b> (your time)
