@@ -82,8 +82,28 @@ def score(analysis: dict, htf_trend: str | None = None) -> dict:
     return {"bias": bias, "confidence": confidence, "htf_note": htf_note}
 
 
+def _risk_factors(conf: int, adx: float, vol: str, countertrend: bool) -> list[dict]:
+    """The handful of inputs behind the risk score, each as good/ok/weak — so the
+    meter can show WHY it reads the way it does."""
+    return [
+        {"label": "Conviction",
+         "state": "good" if conf >= 65 else "weak" if conf < 55 else "ok",
+         "detail": f"{conf}%"},
+        {"label": "Trend strength",
+         "state": "good" if adx >= 25 else "weak" if adx < 18 else "ok",
+         "detail": f"ADX {round(adx)}"},
+        {"label": "Volatility",
+         "state": "good" if vol == "low" else "weak" if vol == "high" else "ok",
+         "detail": vol},
+        {"label": "Higher timeframe",
+         "state": "weak" if countertrend else "good",
+         "detail": "against trend" if countertrend else "aligned"},
+    ]
+
+
 def assess_safety(scored: dict, analysis: dict) -> dict:
-    """A plain-English read on how safe it is to act right now.
+    """A plain-English read on how safe it is to act right now, plus a 0–100 risk
+    score for the meter (0 = very safe to act, 100 = very risky).
 
     Combines conviction, higher-timeframe alignment, trend strength and
     volatility into one verdict — and is happy to say "stay out".
@@ -94,19 +114,32 @@ def assess_safety(scored: dict, analysis: dict) -> dict:
     adx = analysis.get("adx", 0)
     countertrend = bool(scored.get("htf_note") and "AGAINST" in scored["htf_note"])
 
+    # Continuous risk score so the meter needle can sit anywhere, not just in
+    # three buckets. Higher conviction lowers risk; fighting the bigger trend,
+    # high volatility and a dead-flat (low-ADX) tape all raise it.
+    risk = 52.0 - (conf - 55) * 1.25
+    if countertrend:
+        risk += 28
+    if vol == "high":
+        risk += 16
+    elif vol == "low":
+        risk -= 8
+    if adx >= 25:
+        risk -= 10
+    elif adx < 15:
+        risk += 10
     if bias == "neutral":
-        return {"level": "risky", "headline": "No clear edge right now — better to wait",
-                "action": "Stay out", "direction": "none"}
+        risk = max(risk, 72)  # no direction = never "safe to act"
+    risk = int(max(2, min(98, round(risk))))
+    level = "safe" if risk < 40 else "caution" if risk < 68 else "risky"
+    factors = _risk_factors(conf, adx, vol, countertrend)
+
+    if bias == "neutral":
+        return {"level": "risky", "score": risk,
+                "headline": "No clear edge right now — better to wait",
+                "action": "Stay out", "direction": "none", "factors": factors}
 
     dir_word = "long (upward)" if bias == "up" else "short (downward)"
-
-    if conf >= 65 and not countertrend and vol != "high" and adx >= 20:
-        level = "safe"
-    elif conf < 55 or countertrend or vol == "high":
-        level = "risky"
-    else:
-        level = "caution"
-
     if level == "safe":
         headline = f"Looks safe to trade {dir_word} now"
         action = f"Consider {dir_word}"
@@ -118,7 +151,8 @@ def assess_safety(scored: dict, analysis: dict) -> dict:
                   else "very volatile" if vol == "high" else "low conviction")
         headline = f"Risky right now ({reason}) — better to stay out"
         action = "Stay out / wait"
-    return {"level": level, "headline": headline, "action": action, "direction": bias}
+    return {"level": level, "score": risk, "headline": headline, "action": action,
+            "direction": bias, "factors": factors}
 
 
 def make_plan(bias: str, price: float, atr_abs: float) -> dict | None:

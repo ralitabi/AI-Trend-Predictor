@@ -1,6 +1,6 @@
 import type {
   AccuracyReport, AssetInfo, AvgLineResponse, Candle, ForecastHistResponse,
-  OverlaysResponse, Prediction, SignalData, TrendResponse,
+  OverlaysResponse, Prediction, SignalData, TrendcastResponse, TrendResponse,
 } from "./types";
 
 // Backend base URL resolution:
@@ -48,6 +48,9 @@ export const fetchTrends = (symbol: string, tf: string) =>
 
 export const fetchAvgLine = (symbol: string, tf: string) =>
   get<AvgLineResponse>(`/avgline/${symbol}?tf=${tf}`);
+
+export const fetchTrendcast = (symbol: string, tf: string) =>
+  get<TrendcastResponse>(`/trendcast/${symbol}?tf=${tf}`);
 
 export const fetchReport = (symbol?: string, tf?: string) => {
   const q = new URLSearchParams();

@@ -133,11 +133,45 @@ export interface TradePlan {
   rr: number;
 }
 
+export interface RiskFactor {
+  label: string;
+  state: "good" | "ok" | "weak";
+  detail: string;
+}
+
 export interface SafetyInfo {
   level: "safe" | "caution" | "risky";
+  /** 0 = very safe to act … 100 = very risky. Drives the risk meter needle. */
+  score: number;
   headline: string;
   action: string;
   direction: string;
+  factors?: RiskFactor[];
+}
+
+export interface TrendHorizon {
+  bars: number;
+  label: string;
+  direction: "up" | "down" | "sideways";
+  move_pct: number;
+  target: number;
+  low: number;
+  high: number;
+  confidence: number;
+}
+
+export interface TrendForecast {
+  price: number;
+  adx: number;
+  bias: "up" | "down" | "sideways";
+  headline: string;
+  horizons: TrendHorizon[];
+}
+
+export interface TrendcastResponse {
+  symbol: string;
+  tf: string;
+  forecast: TrendForecast | null;
 }
 
 export interface BestWindow {

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  fetchAssets, fetchAvgLine, fetchCandles, fetchForecastHistory, fetchOverlays, fetchPrediction, fetchSignal,
+  fetchAssets, fetchAvgLine, fetchCandles, fetchForecastHistory, fetchOverlays, fetchPrediction,
+  fetchSignal, fetchTrendcast,
 } from "./api";
 import type {
   AssetInfo, AvgLinePoint, Candle, ForecastHistItem, OverlaysResponse, Prediction, SignalData,
+  TrendForecast as TrendForecastData,
 } from "./types";
 import Chart, { type LiveFeed, type OverlaySeries } from "./components/Chart";
 import AssetPicker from "./components/AssetPicker";
@@ -12,6 +14,7 @@ import IndicatorMenu from "./components/IndicatorMenu";
 import SignalPanel from "./components/SignalPanel";
 import IndicatorPanel from "./components/IndicatorPanel";
 import TradeSetup from "./components/TradeSetup";
+import TrendForecast from "./components/TrendForecast";
 import AICard from "./components/AICard";
 import ReportPage from "./components/ReportPage";
 import { useIndicators } from "./useIndicators";
@@ -82,13 +85,16 @@ function Dashboard() {
     localStorage.setItem("trend-forecast-hist", String(showForecastHist));
   }, [showForecastHist]);
   const [avgLine, setAvgLine] = useState<AvgLinePoint[]>([]);
+  // Average trend line is ON by default — it only hides if the user explicitly
+  // turned it off. (Defaulting it off was why it "never showed up".)
   const [showAvgLine, setShowAvgLine] = useState(
-    () => localStorage.getItem("trend-avg-line") === "true",
+    () => localStorage.getItem("trend-avg-line") !== "false",
   );
   useEffect(() => {
     localStorage.setItem("trend-avg-line", String(showAvgLine));
   }, [showAvgLine]);
   const indCtrl = useIndicators();
+  const [trendcast, setTrendcast] = useState<TrendForecastData | null>(null);
   const [livePrice, setLivePrice] = useState<number | null>(null);
   const [tickDir, setTickDir] = useState<"up" | "down" | "">("");
   const prevTickRef = useRef<number | null>(null);
@@ -256,6 +262,16 @@ function Dashboard() {
     }
   }, []);
 
+  const loadTrendcast = useCallback(async (sym: string, timeframe: string) => {
+    const key = `${sym}|${timeframe}`;
+    try {
+      const r = await fetchTrendcast(sym, timeframe);
+      if (viewKey.current === key) setTrendcast(r.forecast);
+    } catch {
+      /* trend forecast is supplementary */
+    }
+  }, []);
+
   const loadPrediction = useCallback(async (sym: string, timeframe: string) => {
     const key = `${sym}|${timeframe}`;
     try {
@@ -274,13 +290,15 @@ function Dashboard() {
     setSignal(null);
     setPrediction(null);
     setOverlayData(null);
+    setTrendcast(null);
     Promise.all([
       loadCandles(symbol, tf),
       loadSignal(symbol, tf),
       loadPrediction(symbol, tf),
       loadOverlays(symbol, tf),
+      loadTrendcast(symbol, tf),
     ]).finally(() => setLoading(false));
-  }, [symbol, tf, loadCandles, loadSignal, loadPrediction, loadOverlays]);
+  }, [symbol, tf, loadCandles, loadSignal, loadPrediction, loadOverlays, loadTrendcast]);
 
   // LIVE technical signal — polled ~every 1.5s (intraday) with an in-flight guard,
   // so a newly-closed candle updates the report almost immediately.
@@ -330,6 +348,16 @@ function Dashboard() {
     return () => clearInterval(id);
   }, [showAvgLine, symbol, tf, loadAvgLine]);
 
+  // Trend prediction: refresh alongside the signal so the multi-horizon read
+  // tracks the latest price action.
+  useEffect(() => {
+    const ms = INTRADAY.has(tf) ? 6000 : 20_000;
+    const id = setInterval(() => {
+      if (!document.hidden) loadTrendcast(symbol, tf);
+    }, ms);
+    return () => clearInterval(id);
+  }, [symbol, tf, loadTrendcast]);
+
   // Toggling indicators on/off ⇒ immediately re-score the signal.
   useEffect(() => {
     if (signal) loadSignal(symbol, tf);
@@ -376,14 +404,22 @@ function Dashboard() {
   const shownPrice = livePrice ?? signal?.price ?? prediction?.price ?? null;
   const changePct = signal?.change_pct ?? prediction?.change_pct ?? null;
 
-  // Candle-close countdown, self-aligning from the latest candle's open time
+  // Candle-close countdown. Crypto/intraday candles open on clean clock
+  // boundaries, so we count down to the next wall-clock boundary — this resets
+  // to a full period the instant a new candle opens, even though the fetched
+  // `candles` array stays frozen while the WebSocket streams the live bar.
+  // Weekly candles don't align to the epoch, so anchor those to the real open.
   const tfSec = TF_SECONDS[tf] ?? 3600;
   const lastTime = candles.length ? candles[candles.length - 1].time : null;
   let countdown: number | null = null;
   if (lastTime !== null) {
     const nowSec = now / 1000;
-    const periodsAhead = Math.max(1, Math.ceil((nowSec - lastTime) / tfSec));
-    countdown = lastTime + periodsAhead * tfSec - nowSec;
+    if (tf === "1wk") {
+      const periodsAhead = Math.max(1, Math.ceil((nowSec - lastTime) / tfSec));
+      countdown = lastTime + periodsAhead * tfSec - nowSec;
+    } else {
+      countdown = Math.ceil(nowSec / tfSec) * tfSec - nowSec;
+    }
   }
   const clock = new Date(now).toLocaleTimeString();
 
@@ -541,6 +577,7 @@ function Dashboard() {
             />
           )}
           {signal && <TradeSetup s={signal} />}
+          {trendcast && <TrendForecast f={trendcast} />}
           {prediction && <AICard p={prediction} />}
         </aside>
       </main>

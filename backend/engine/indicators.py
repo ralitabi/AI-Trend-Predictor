@@ -474,3 +474,4 @@ def analyze(candles: list[dict]) -> dict:
         "resistance": resistance,
         "price": price,
     }
+

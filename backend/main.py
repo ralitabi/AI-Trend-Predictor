@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from data import cache, crypto, market, store
 from data.assets import ASSETS, TIMEFRAMES, get_asset
-from engine import ai, avgline, forecast, indicators, overlays, scoring, signal, timing, trends
+from engine import ai, avgline, forecast, indicators, overlays, scoring, signal, timing, trendcast, trends
 
 TF_SECONDS = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400, "1wk": 604800}
 
@@ -293,6 +293,20 @@ def get_trends(symbol: str, tf: str = Query("1h")):
     except RuntimeError as e:
         raise HTTPException(502, str(e))
     return {"symbol": asset["symbol"], "tf": tf, "trend": trends.analyze(data, TF_SECONDS[tf])}
+
+
+@app.get("/trendcast/{symbol}")
+def get_trendcast(symbol: str, tf: str = Query("1h")):
+    """Multi-horizon trend projection — where price is likely to head over the
+    next near / mid / far windows on this timeframe."""
+    try:
+        asset = get_asset(symbol)
+        data = _candles_for(symbol, tf, 300)
+    except KeyError as e:
+        raise HTTPException(404, str(e))
+    except RuntimeError as e:
+        raise HTTPException(502, str(e))
+    return {"symbol": asset["symbol"], "tf": tf, "forecast": trendcast.project(data, TF_SECONDS[tf])}
 
 
 @app.get("/report")

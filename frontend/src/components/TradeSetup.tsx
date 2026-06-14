@@ -1,5 +1,6 @@
 import type { SignalData } from "../types";
 import CollapsiblePanel from "./CollapsiblePanel";
+import RiskMeter from "./RiskMeter";
 
 const ARROWS = { up: "▲", down: "▼", neutral: "■" } as const;
 
@@ -23,12 +24,7 @@ export default function TradeSetup({ s }: { s: SignalData }) {
     <CollapsiblePanel title="Trade Setup">
       {safety && (
         <div className={`safety safety-${safety.level}`}>
-          <div className="safety-top">
-            <span className="safety-dot" />
-            <span className="safety-level">{safety.level.toUpperCase()}</span>
-            <span className="safety-action">{safety.action}</span>
-          </div>
-          <div className="safety-headline">{safety.headline}</div>
+          <RiskMeter safety={safety} />
           {bw && (
             <div className="safety-time">
               Best hours to trade: <b>{utcHourLocal(bw.start_utc)} – {utcHourLocal(bw.end_utc)}</b> (your time)
