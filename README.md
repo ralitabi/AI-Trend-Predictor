@@ -26,9 +26,7 @@ Live candles, 17 technical indicators, regime-aware signals, AI reasoning, next-
 
 AI Trend Predictor turns raw market data into a clear, honest read on direction. It streams live candles, runs a weighted board of 17 technical indicators, layers an AI analyst over the top, and — crucially — **keeps score of its own predictions** so you always know how much to trust it.
 
-It is a decision-support tool, not a crystal ball. Every signal carries a confidence level and a risk note, and the engine deliberately returns **"no edge"** when the indicators disagree rather than forcing a guess.
-
-> **Not financial advice.** Markets are probabilistic. Never risk money you cannot afford to lose.
+Every signal carries a confidence level, and the engine deliberately returns **"no edge"** when the indicators disagree rather than forcing a guess — so you always know how strong the read is.
 
 ---
 

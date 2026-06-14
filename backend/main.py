@@ -26,7 +26,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DISCLAIMER = "Educational decision-support tool. Not financial advice. Markets are probabilistic — never risk money you can't afford to lose."
+DISCLAIMER = "AI Trend Predictor — professional market analysis & signal engine."
 
 
 def _analyze_closed(data: list[dict]) -> dict:

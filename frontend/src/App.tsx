@@ -521,10 +521,10 @@ function Dashboard() {
 
       <footer className="app-footer">
         <div className="foot-disclaimer">
-          <span className="foot-shield">🛡</span>
+          <span className="foot-shield">▲</span>
           <div>
-            <div className="foot-disc-title">Educational decision-support tool. Not financial advice.</div>
-            <div className="foot-disc-sub">Markets are probabilistic — never risk money you can't afford to lose.</div>
+            <div className="foot-disc-title">AI Trend Predictor</div>
+            <div className="foot-disc-sub">Professional market analysis &amp; signal engine</div>
           </div>
         </div>
         <div className="foot-meta">
