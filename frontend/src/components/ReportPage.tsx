@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchAssets, fetchForecastHistory, fetchReport, fetchTrends } from "../api";
 import type { AccuracyReport, AssetInfo, ForecastSummary, TrendInfo } from "../types";
 
@@ -38,20 +38,46 @@ export default function ReportPage({ symbol: pSymbol, tf: pTf }: { symbol?: stri
   const [trend, setTrend] = useState<TrendInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshedAt, setRefreshedAt] = useState<string>("");
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchAssets().then(setAssets).catch(() => {});
   }, []);
 
-  const load = useCallback(async () => {
+  // FAST path — the accuracy stats (/report ~10ms warm) and trend (/trends ~10ms)
+  // refresh every second. Its own in-flight guard so ticks never stack.
+  const busyMain = useRef(false);
+  const loadMain = useCallback(async () => {
+    if (busyMain.current) return;
+    busyMain.current = true;
+    setRefreshing(true);
     try {
-      setReport(await fetchReport(fSymbol || undefined, fTf || undefined));
-      setError(null);
-      setRefreshedAt(new Date().toLocaleTimeString());
-    } catch (e) {
-      setError(String(e));
+      try {
+        setReport(await fetchReport(fSymbol || undefined, fTf || undefined));
+        setError(null);
+        setRefreshedAt(new Date().toLocaleTimeString());
+      } catch (e) {
+        setError(String(e));
+      }
+      try {
+        const t = await fetchTrends(fSymbol || "BTCUSDT", fTf || "1h");
+        setTrend(t.trend);
+      } catch {
+        setTrend(null);
+      }
+    } finally {
+      busyMain.current = false;
+      setRefreshing(false);
     }
-    // Forecast-quality breakdown needs a concrete market — reconstruct for it.
+  }, [fSymbol, fTf]);
+
+  // SLOW path — the predicted-candle quality breakdown replays the engine over
+  // history (~7s cold), so it runs on its own relaxed cadence and never blocks
+  // the per-second stats refresh above.
+  const busyQ = useRef(false);
+  const loadQuality = useCallback(async () => {
+    if (busyQ.current) return;
+    busyQ.current = true;
     const sym = fSymbol || "BTCUSDT";
     const tf = fTf || "1h";
     try {
@@ -60,22 +86,22 @@ export default function ReportPage({ symbol: pSymbol, tf: pTf }: { symbol?: stri
       setQualitySym(`${sym} · ${tf}`);
     } catch {
       setQuality(null);
-    }
-    try {
-      const t = await fetchTrends(sym, tf);
-      setTrend(t.trend);
-    } catch {
-      setTrend(null);
+    } finally {
+      busyQ.current = false;
     }
   }, [fSymbol, fTf]);
 
   useEffect(() => {
-    load();
-    const id = setInterval(() => {
-      if (!document.hidden) load();
-    }, 30_000);
+    loadMain();
+    const id = setInterval(() => { if (!document.hidden) loadMain(); }, 1000);
     return () => clearInterval(id);
-  }, [load]);
+  }, [loadMain]);
+
+  useEffect(() => {
+    loadQuality();
+    const id = setInterval(() => { if (!document.hidden) loadQuality(); }, 20_000);
+    return () => clearInterval(id);
+  }, [loadQuality]);
 
   if (error) return <div className="report-page"><div className="error-bar">{error}</div></div>;
   if (!report) return <div className="report-page"><div className="loading">Loading report…</div></div>;
@@ -100,8 +126,12 @@ export default function ReportPage({ symbol: pSymbol, tf: pTf }: { symbol?: stri
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
-          updated {refreshedAt} · auto-refreshes every 30s
-          <button className="tab" onClick={load}>refresh now</button>
+          <span className="report-live"><span className="report-live-dot" /> live · every 1s</span>
+          updated {refreshedAt}
+          <button className={`report-refresh${refreshing ? " spinning" : ""}`}
+            onClick={() => { loadMain(); loadQuality(); }} title="Refresh now">
+            <span className="rr-icon">↻</span> Refresh
+          </button>
         </div>
       </header>
 

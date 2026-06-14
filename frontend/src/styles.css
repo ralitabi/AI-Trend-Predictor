@@ -532,6 +532,22 @@ body {
   border: 1px solid var(--border); border-radius: 8px;
   padding: 5px 8px; font-family: inherit; font-size: 12px;
 }
+.report-live { display: inline-flex; align-items: center; gap: 6px; color: var(--green); font-weight: 600; }
+.report-live-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+  box-shadow: 0 0 7px var(--green); animation: report-pulse 1s ease-in-out infinite;
+}
+@keyframes report-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.report-refresh {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  padding: 6px 12px; font-family: inherit; font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: filter 0.15s ease;
+}
+.report-refresh:hover { filter: brightness(1.12); }
+.report-refresh .rr-icon { font-size: 14px; display: inline-block; }
+.report-refresh.spinning .rr-icon { animation: rr-spin 0.7s linear infinite; }
+@keyframes rr-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 .report-page h2 {
   font-size: 12px; font-weight: 700; letter-spacing: 1px;
   text-transform: uppercase; color: var(--text-dim); margin-top: 8px;
