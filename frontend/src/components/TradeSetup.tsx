@@ -6,12 +6,38 @@ const ARROWS = { up: "▲", down: "▼", neutral: "■" } as const;
 const fmt = (n: number) =>
   n >= 100 ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : n.toFixed(5);
 
+/** UTC hour (0–23) → the viewer's local time, e.g. "5 PM". */
+function utcHourLocal(h: number): string {
+  const d = new Date();
+  d.setUTCHours(h, 0, 0, 0);
+  return d.toLocaleTimeString([], { hour: "numeric", hour12: true });
+}
+
 export default function TradeSetup({ s }: { s: SignalData }) {
   const pctFrom = (level: number) => (((level - s.price) / s.price) * 100).toFixed(2);
   const nc = s.next_candle;
+  const safety = s.safety;
+  const bw = s.best_window;
 
   return (
     <CollapsiblePanel title="Trade Setup">
+      {safety && (
+        <div className={`safety safety-${safety.level}`}>
+          <div className="safety-top">
+            <span className="safety-dot" />
+            <span className="safety-level">{safety.level.toUpperCase()}</span>
+            <span className="safety-action">{safety.action}</span>
+          </div>
+          <div className="safety-headline">{safety.headline}</div>
+          {bw && (
+            <div className="safety-time">
+              Best hours to trade: <b>{utcHourLocal(bw.start_utc)} – {utcHourLocal(bw.end_utc)}</b> (your time)
+              {bw.intensity >= 1.15 && <span className="safety-time-note"> · {bw.intensity}× the usual movement</span>}
+            </div>
+          )}
+        </div>
+      )}
+
       {nc && (
         <div className={`forecast forecast-${nc.direction}`}>
           <div className="forecast-head">

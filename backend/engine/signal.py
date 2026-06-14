@@ -82,6 +82,45 @@ def score(analysis: dict, htf_trend: str | None = None) -> dict:
     return {"bias": bias, "confidence": confidence, "htf_note": htf_note}
 
 
+def assess_safety(scored: dict, analysis: dict) -> dict:
+    """A plain-English read on how safe it is to act right now.
+
+    Combines conviction, higher-timeframe alignment, trend strength and
+    volatility into one verdict — and is happy to say "stay out".
+    """
+    conf = scored["confidence"]
+    bias = scored["bias"]
+    vol = analysis.get("volatility", "moderate")
+    adx = analysis.get("adx", 0)
+    countertrend = bool(scored.get("htf_note") and "AGAINST" in scored["htf_note"])
+
+    if bias == "neutral":
+        return {"level": "risky", "headline": "No clear edge right now — better to wait",
+                "action": "Stay out", "direction": "none"}
+
+    dir_word = "long (upward)" if bias == "up" else "short (downward)"
+
+    if conf >= 65 and not countertrend and vol != "high" and adx >= 20:
+        level = "safe"
+    elif conf < 55 or countertrend or vol == "high":
+        level = "risky"
+    else:
+        level = "caution"
+
+    if level == "safe":
+        headline = f"Looks safe to trade {dir_word} now"
+        action = f"Consider {dir_word}"
+    elif level == "caution":
+        headline = f"Mixed conditions — only trade {dir_word} with tight risk"
+        action = f"Small {dir_word}, tight stop"
+    else:
+        reason = ("against the bigger trend" if countertrend
+                  else "very volatile" if vol == "high" else "low conviction")
+        headline = f"Risky right now ({reason}) — better to stay out"
+        action = "Stay out / wait"
+    return {"level": level, "headline": headline, "action": action, "direction": bias}
+
+
 def make_plan(bias: str, price: float, atr_abs: float) -> dict | None:
     """ATR-based trade plan: stop at 1.5x ATR against you, target at 2.5x with
     you (risk:reward 1:1.67). Position-sizing guidance, not a guarantee."""

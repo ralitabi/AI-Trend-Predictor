@@ -133,6 +133,20 @@ export interface TradePlan {
   rr: number;
 }
 
+export interface SafetyInfo {
+  level: "safe" | "caution" | "risky";
+  headline: string;
+  action: string;
+  direction: string;
+}
+
+export interface BestWindow {
+  start_utc: number;
+  end_utc: number;
+  intensity: number;
+  basis: string;
+}
+
 export interface Technical {
   bias: "up" | "down" | "neutral";
   confidence: number;
@@ -145,11 +159,15 @@ export interface Technical {
   levels: Levels;
   htf: HTF | null;
   plan: TradePlan | null;
+  safety?: SafetyInfo;
+  best_window?: BestWindow | null;
 }
 
 export interface AIView {
   direction: "up" | "down" | "neutral";
   confidence: number;
+  safety?: string;
+  best_time?: string;
   rationale: string;
   key_drivers: string[];
   risk_note: string;

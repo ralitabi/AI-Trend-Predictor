@@ -208,7 +208,11 @@ function Dashboard() {
     }
   }, []);
 
+  // Guard so the ~1-2s signal poll never stacks requests if one is slow.
+  const signalBusy = useRef(false);
   const loadSignal = useCallback(async (sym: string, timeframe: string) => {
+    if (signalBusy.current) return;
+    signalBusy.current = true;
     const key = `${sym}|${timeframe}`;
     try {
       const s = await fetchSignal(sym, timeframe, selRef.current.on || undefined);
@@ -217,6 +221,8 @@ function Dashboard() {
       setError(null);
     } catch (e) {
       if (viewKey.current === key) setError(friendly(e));
+    } finally {
+      signalBusy.current = false;
     }
   }, []);
 
@@ -276,16 +282,24 @@ function Dashboard() {
     ]).finally(() => setLoading(false));
   }, [symbol, tf, loadCandles, loadSignal, loadPrediction, loadOverlays]);
 
-  // LIVE technical signal: fast, cheap (no AI call) — every 8s intraday.
+  // LIVE technical signal — polled ~every 1.5s (intraday) with an in-flight guard,
+  // so a newly-closed candle updates the report almost immediately.
   useEffect(() => {
-    const ms = INTRADAY.has(tf) ? 8_000 : 30_000;
+    const ms = INTRADAY.has(tf) ? 1500 : 5000;
     const id = setInterval(() => {
-      if (document.hidden) return;
-      loadSignal(symbol, tf);
-      loadOverlays(symbol, tf);
+      if (!document.hidden) loadSignal(symbol, tf);
     }, ms);
     return () => clearInterval(id);
-  }, [symbol, tf, loadSignal, loadOverlays]);
+  }, [symbol, tf, loadSignal]);
+
+  // Chart overlays change slowly — refresh them on a relaxed cadence.
+  useEffect(() => {
+    const ms = INTRADAY.has(tf) ? 10_000 : 30_000;
+    const id = setInterval(() => {
+      if (!document.hidden) loadOverlays(symbol, tf);
+    }, ms);
+    return () => clearInterval(id);
+  }, [symbol, tf, loadOverlays]);
 
   // Predicted-candle history: load on toggle-on, symbol/tf change, and refresh
   // alongside the signal so newly-closed forecasts get scored & colored.
@@ -504,6 +518,18 @@ function Dashboard() {
             onTick={onTick}
             onResync={onResync}
           />
+          {countdown !== null && (
+            <div className="candle-timer" title="Time until the current candle closes">
+              <span className="ct-label">{tf.toUpperCase()} candle closes in</span>
+              <span className="ct-time">{fmtCountdown(countdown)}</span>
+              <span className="ct-bar">
+                <span
+                  className="ct-bar-fill"
+                  style={{ width: `${Math.max(0, Math.min(100, (1 - countdown / tfSec) * 100))}%` }}
+                />
+              </span>
+            </div>
+          )}
         </section>
         <aside className="sidebar">
           {signal ? <SignalPanel s={signal} /> : !error && <div className="panel">Loading signal…</div>}

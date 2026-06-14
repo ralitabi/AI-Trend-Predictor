@@ -24,5 +24,6 @@ def put(key: str, value, ttl: float):
 
 
 def ttl_for(tf: str) -> float:
-    """Refresh cadence per timeframe — intraday stays fresh, daily can chill."""
-    return {"1m": 8, "5m": 15, "15m": 30, "1h": 60, "4h": 300, "1d": 600, "1wk": 1800}.get(tf, 60)
+    """Refresh cadence per timeframe — kept short so the technical signal reflects
+    a newly-closed candle within a couple of seconds."""
+    return {"1m": 3, "5m": 5, "15m": 8, "1h": 20, "4h": 90, "1d": 300, "1wk": 900}.get(tf, 20)

@@ -670,6 +670,51 @@ body {
 .vbox-neutral .vbox-num { color: var(--amber); }
 .vol-count { color: var(--text-faint); }
 
+/* ---- candle-close countdown (overlaid on the chart) ---- */
+.candle-timer {
+  position: absolute; left: 12px; bottom: 12px; z-index: 4;
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(10,14,23,0.82); border: 1px solid var(--border);
+  border-radius: 9px; padding: 6px 10px; backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+.ct-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.ct-time { font-family: "JetBrains Mono", monospace; font-size: 14px; font-weight: 700; color: var(--amber); }
+.ct-bar { width: 70px; height: 4px; border-radius: 2px; background: rgba(140,150,170,0.2); overflow: hidden; }
+.ct-bar-fill { display: block; height: 100%; background: var(--amber); transition: width 0.9s linear; }
+
+/* ---- safety verdict ---- */
+.safety {
+  border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; margin-bottom: 12px;
+  border-left-width: 3px;
+}
+.safety-safe { border-left-color: var(--green); background: rgba(38,166,154,0.07); }
+.safety-caution { border-left-color: var(--amber); background: rgba(240,185,11,0.07); }
+.safety-risky { border-left-color: var(--red); background: rgba(239,83,80,0.07); }
+.safety-top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.safety-dot { width: 9px; height: 9px; border-radius: 50%; }
+.safety-safe .safety-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.safety-caution .safety-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.safety-risky .safety-dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.safety-level { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; }
+.safety-safe .safety-level { color: var(--green); }
+.safety-caution .safety-level { color: var(--amber); }
+.safety-risky .safety-level { color: var(--red); }
+.safety-action { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--text-dim); }
+.safety-headline { font-size: 12px; color: var(--text); line-height: 1.4; }
+.safety-time { margin-top: 7px; font-size: 11px; color: var(--text-dim); }
+.safety-time b { color: var(--text); font-family: "JetBrains Mono", monospace; }
+.safety-time-note { color: var(--text-faint); }
+
+.safety-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 2px 7px; border-radius: 6px;
+}
+.sb-safe { background: rgba(38,166,154,0.16); color: var(--green); }
+.sb-caution { background: rgba(240,185,11,0.16); color: var(--amber); }
+.sb-risky { background: rgba(239,83,80,0.16); color: var(--red); }
+.ai-best-time { font-size: 12px; color: var(--accent); margin: 8px 0; font-weight: 600; }
+
 /* ---- gradient call-to-action ---- */
 .full-analysis-btn {
   width: 100%; margin-top: 14px; padding: 12px;

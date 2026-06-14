@@ -140,14 +140,16 @@ export default function Chart({ candles, live, tf, levels, plan, forecast, forec
     });
     chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
 
-    // ghost series: the projected next candle, translucent so it reads as a forecast
+    // ghost series: the projected next candle. Clearly GREEN when the forecast
+    // is up and clearly RED when it's down (not faint pink), with a dashed border
+    // so it still reads as a forecast rather than a real bar.
     const ghostSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "rgba(22,199,132,0.22)",
-      downColor: "rgba(234,57,67,0.22)",
-      borderUpColor: "rgba(22,199,132,0.6)",
-      borderDownColor: "rgba(234,57,67,0.6)",
-      wickUpColor: "rgba(22,199,132,0.45)",
-      wickDownColor: "rgba(234,57,67,0.45)",
+      upColor: "rgba(38,166,154,0.55)",
+      downColor: "rgba(239,83,80,0.55)",
+      borderUpColor: "#2ee59d",
+      borderDownColor: "#ff5252",
+      wickUpColor: "#26a69a",
+      wickDownColor: "#ef5350",
       priceLineVisible: false,
       lastValueVisible: false,
     });

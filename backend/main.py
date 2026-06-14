@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from data import cache, crypto, market, store
 from data.assets import ASSETS, TIMEFRAMES, get_asset
-from engine import ai, avgline, forecast, indicators, overlays, scoring, signal, trends
+from engine import ai, avgline, forecast, indicators, overlays, scoring, signal, timing, trends
 
 TF_SECONDS = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400, "1wk": 604800}
 
@@ -52,7 +52,21 @@ def _htf_trend(symbol: str, tf: str) -> tuple[str | None, str | None]:
         return None, None
 
 
-def _technical_block(analysis: dict, scored: dict, plan: dict | None, htf: str | None, htf_trend: str | None) -> dict:
+def _best_window(symbol: str) -> dict | None:
+    """Cached per-asset 'best hours to trade' from hourly volatility."""
+    key = f"timing:{symbol}"
+    bw = cache.get(key)
+    if bw is None:
+        try:
+            bw = timing.best_window(_candles_for(symbol, "1h", 300))
+        except Exception:
+            bw = None
+        cache.put(key, bw, ttl=3600)  # slow-changing stat; refresh hourly
+    return bw
+
+
+def _technical_block(analysis: dict, scored: dict, plan: dict | None,
+                     htf: str | None, htf_trend: str | None, symbol: str) -> dict:
     return {
         "bias": scored["bias"], "confidence": scored["confidence"],
         "votes": analysis["votes"], "indicators": analysis["details"],
@@ -61,6 +75,8 @@ def _technical_block(analysis: dict, scored: dict, plan: dict | None, htf: str |
         "levels": {"support": analysis["support"], "resistance": analysis["resistance"]},
         "htf": {"tf": htf, "trend": htf_trend, "note": scored.get("htf_note")} if htf else None,
         "plan": plan,
+        "safety": signal.assess_safety(scored, analysis),
+        "best_window": _best_window(symbol),
     }
 
 
@@ -142,7 +158,7 @@ def get_signal(symbol: str, tf: str = Query("1h"),
     return {
         "symbol": asset["symbol"], "name": asset["name"], "asset_class": asset["asset_class"], "tf": tf,
         "price": price_now, "change_pct": round(change_pct, 3),
-        **_technical_block(analysis, scored, plan, htf, htf_trend),
+        **_technical_block(analysis, scored, plan, htf, htf_trend, asset["symbol"]),
         "next_candle": next_candle,
         "updated": int(time.time()), "disclaimer": DISCLAIMER,
     }
@@ -197,6 +213,8 @@ def predict(symbol: str, tf: str = Query("1h"),
     analysis["htf"] = {"tf": htf, "trend": htf_trend}  # context for the AI layer
     analysis["plan"] = plan
     analysis["next_candle"] = next_candle
+    analysis["safety"] = signal.assess_safety(scored, analysis)  # grounds the AI's safety verdict
+    analysis["best_window"] = _best_window(symbol)
     # AI sees the full technical block, but only the user-selected indicator rows
     ai_analysis = dict(analysis)
     if ai_indicators is not None:
@@ -209,6 +227,7 @@ def predict(symbol: str, tf: str = Query("1h"),
             "symbol": asset["symbol"], "tf": tf, "direction": scored["bias"],
             "confidence": scored["confidence"],
             "rationale": f"AI layer error ({type(e).__name__}); showing technical signal only.",
+            "safety": "", "best_time": "",
             "key_drivers": [], "risk_note": "", "headlines_used": [], "model": "error", "cached": False,
         }
 
@@ -228,7 +247,7 @@ def predict(symbol: str, tf: str = Query("1h"),
     return {
         "symbol": asset["symbol"], "name": asset["name"], "asset_class": asset["asset_class"], "tf": tf,
         "price": price_now, "change_pct": round(change_pct, 3),
-        "technical": _technical_block(analysis, scored, plan, htf, htf_trend),
+        "technical": _technical_block(analysis, scored, plan, htf, htf_trend, asset["symbol"]),
         "next_candle": next_candle,
         "ai": ai_view,
         "updated": int(time.time()), "disclaimer": DISCLAIMER,

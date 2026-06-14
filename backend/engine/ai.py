@@ -18,21 +18,24 @@ OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "auto")  # auto | claude | openai
 
-_SYSTEM = """You are a professional market analyst engine inside a trading dashboard.
-You receive technical indicator readings (with ADX trend-strength regime, higher-timeframe
-trend, key support/resistance levels and an ATR-based trade plan) plus recent news headlines.
+_SYSTEM = """You are a professional market analyst inside a live trading dashboard.
+You receive technical readings (ADX regime, higher-timeframe trend, key levels, an ATR plan,
+a computed safety verdict, and the asset's historically best trading hours) plus recent news.
 Respond ONLY with valid JSON, no markdown, matching exactly:
 {
   "direction": "up" | "down" | "neutral",
-  "confidence": <int 0-100, be conservative; >75 only with strong confluence>,
-  "rationale": "<3-5 sentences, plain English, professional. Weigh trend regime (in a strong
-    trend, overbought/oversold matters less), higher-timeframe alignment, proximity to
-    support/resistance, and any headlines that plausibly move THIS asset>",
-  "key_drivers": ["<driver 1>", "<driver 2>", "<driver 3>"],
-  "risk_note": "<one sentence on the main risk, referencing a concrete level when relevant>"
+  "confidence": <int 0-100; be conservative; >75 only with strong confluence>,
+  "safety": "safe" | "caution" | "risky",
+  "rationale": "<2-3 short sentences, plain English. Say clearly whether it is SAFE to trade now
+     and which way (long / upward, or short / downward), or to STAY OUT. Keep it tight.>",
+  "best_time": "<one short line on the best window to trade this asset, using the provided best
+     trading hours; for 24/7 assets with no strong pattern you may say 'no strong time-of-day edge'>",
+  "key_drivers": ["<driver 1>", "<driver 2>"],
+  "risk_note": "<one short sentence on the main risk>"
 }
-Never claim certainty. If technicals and news conflict, or price sits right at a key level,
-lower confidence and say so. Ignore headlines irrelevant to this asset."""
+Do NOT force a directional trade. When conditions are mixed or poor, say plainly it is risky and
+better to wait. Be concise — this renders in a small card. Never claim certainty. Ignore headlines
+irrelevant to this asset."""
 
 # Structured-output schema for Claude — guarantees valid, parseable JSON.
 _CLAUDE_SCHEMA = {
@@ -40,11 +43,13 @@ _CLAUDE_SCHEMA = {
     "properties": {
         "direction": {"type": "string", "enum": ["up", "down", "neutral"]},
         "confidence": {"type": "integer"},
+        "safety": {"type": "string", "enum": ["safe", "caution", "risky"]},
         "rationale": {"type": "string"},
+        "best_time": {"type": "string"},
         "key_drivers": {"type": "array", "items": {"type": "string"}},
         "risk_note": {"type": "string"},
     },
-    "required": ["direction", "confidence", "rationale", "key_drivers", "risk_note"],
+    "required": ["direction", "confidence", "safety", "rationale", "best_time", "key_drivers", "risk_note"],
     "additionalProperties": False,
 }
 
@@ -113,7 +118,8 @@ def analyze(symbol: str, name: str, asset_class: str, tf: str, technical: dict, 
                          + f"{technical['votes']['neutral']} neutral.",
             "key_drivers": [f"{d['name']}: {d['note']}" for d in technical["details"][:3]],
             "risk_note": "Set an API key in backend/.env to enable news-aware AI reasoning.",
-            "headlines_used": heads[:5], "model": "none", "cached": False,
+            "safety": (technical.get("safety") or {}).get("level", ""),
+            "best_time": "", "headlines_used": heads[:5], "model": "none", "cached": False,
         }
 
     user_msg = json.dumps({
@@ -126,7 +132,9 @@ def analyze(symbol: str, name: str, asset_class: str, tf: str, technical: dict, 
                               "higher_timeframe": technical.get("htf"),
                               "key_levels": {"support": technical["support"], "resistance": technical["resistance"]},
                               "atr_trade_plan": technical.get("plan"),
-                              "next_candle_projection": technical.get("next_candle")},
+                              "next_candle_projection": technical.get("next_candle"),
+                              "safety_verdict": technical.get("safety"),
+                              "best_trading_hours_utc": technical.get("best_window")},
         "indicators": technical["details"],
         "recent_headlines": heads,
     })
@@ -149,6 +157,8 @@ def analyze(symbol: str, name: str, asset_class: str, tf: str, technical: dict, 
         "symbol": symbol, "tf": tf,
         "direction": data.get("direction", "neutral"),
         "confidence": int(data.get("confidence", 50)),
+        "safety": data.get("safety", ""),
+        "best_time": data.get("best_time", ""),
         "rationale": data.get("rationale", ""),
         "key_drivers": data.get("key_drivers", [])[:4],
         "risk_note": data.get("risk_note", ""),

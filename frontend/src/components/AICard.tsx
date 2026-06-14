@@ -12,10 +12,13 @@ export default function AICard({ p }: { p: Prediction }) {
       <div className={`bias bias-${ai.direction}`}>
         <span className="bias-arrow">{ARROWS[ai.direction]}</span>
         <span className="bias-label">{ai.direction === "neutral" ? "NO EDGE" : ai.direction.toUpperCase()}</span>
+        {ai.safety && <span className={`safety-badge sb-${ai.safety}`}>{ai.safety}</span>}
         <span className="bias-conf">{ai.confidence}%</span>
       </div>
 
       <p className="rationale">{ai.rationale}</p>
+
+      {ai.best_time && <div className="ai-best-time">⏱ {ai.best_time}</div>}
 
       {ai.key_drivers.length > 0 && (
         <ul className="drivers">
