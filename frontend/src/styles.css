@@ -24,6 +24,7 @@ body {
   font-family: "Inter", system-ui, sans-serif;
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* ---- global motion ---- */
@@ -325,6 +326,15 @@ body {
   display: flex; justify-content: space-between; align-items: center;
 }
 .panel-title-inline { font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-dim); }
+
+/* collapsible panel header */
+.panel-head {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  background: transparent; border: none; cursor: pointer; font-family: inherit;
+  padding: 0; color: inherit; -webkit-tap-highlight-color: transparent;
+}
+.panel-head-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.panel-body { margin-top: 12px; }
 
 /* ---- indicator control panel ---- */
 .ind-panel { padding: 0; overflow: hidden; }
@@ -725,8 +735,60 @@ body {
 .report-drawer-body .report-page { padding: 14px; }
 .report-drawer-body .report-head h1 { font-size: 16px; }
 
+/* ============ Responsive: tablet & phone ============ */
 @media (max-width: 900px) {
-  .layout { flex-direction: column; overflow-y: auto; }
-  .chart-wrap { min-height: 380px; }
-  .sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border); }
+  /* let the whole page scroll instead of locking to one viewport */
+  .app { height: auto; min-height: 100vh; min-height: 100dvh; }
+  .topbar { height: auto; padding: 8px 12px; gap: 10px; flex-wrap: wrap; }
+  .report-btn { margin-left: 0; }
+
+  .price-header { margin: 8px 8px 0; padding: 12px 14px; gap: 14px; }
+
+  .layout { flex-direction: column; padding: 8px; gap: 10px; overflow: visible; }
+  .chart-wrap { height: 58vh; min-height: 320px; flex: none; }
+  .sidebar { width: 100%; overflow: visible; }
+
+  /* report drawer becomes a full-width sheet */
+  .report-drawer:not(.collapsed) { width: 100% !important; }
+  .report-resize { display: none; }
+}
+
+@media (max-width: 560px) {
+  body { font-size: 12px; }
+  .logo { font-size: 13px; }
+  .topbar { gap: 6px 8px; }
+  .report-btn { font-size: 11px; padding: 5px 9px; }
+
+  /* price header stacks naturally and shrinks */
+  .price-header { gap: 8px 14px; }
+  .ph-id { gap: 9px; }
+  .ph-star { width: 30px; height: 30px; }
+  .ph-title { font-size: 14px; }
+  .ph-price { font-size: 22px; }
+  .ph-stats { gap: 14px; }
+  .ph-stat-val { font-size: 12px; }
+  .ph-right .clock { display: none; }
+
+  .chart-wrap { height: 52vh; min-height: 280px; }
+
+  /* dropdowns fit the viewport; the rightmost (indicators) opens leftward */
+  .im-menu { left: auto; right: 0; width: min(92vw, 360px); }
+  .picker-menu { width: min(88vw, 320px); }
+
+  .panel { padding: 12px; }
+  .sig-main { flex-wrap: wrap; gap: 12px; }
+  .sig-label { font-size: 22px; }
+  .vote-boxes { gap: 5px; }
+  .vbox { min-width: 0; padding: 9px 2px; }
+  .vbox-num { font-size: 18px; }
+  .vbox-lbl { font-size: 9px; letter-spacing: 0.2px; }
+  .plan-row, .forecast-ohlc { gap: 8px 12px; }
+  .sidebar > * { max-width: 100%; }
+
+  /* report: single-column cards + readable tables */
+  .stat-cards, .quality-cards, .trend-persist-row { grid-template-columns: 1fr; }
+  .report-head { flex-wrap: wrap; gap: 8px; }
+  .report-table { font-size: 11px; }
+  .report-table th, .report-table td { padding: 6px 6px; }
+  .trend-top { gap: 10px; }
 }

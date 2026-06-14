@@ -1,4 +1,5 @@
 import type { SignalData } from "../types";
+import CollapsiblePanel from "./CollapsiblePanel";
 
 const ARROWS = { up: "▲", down: "▼", neutral: "■" } as const;
 
@@ -10,9 +11,7 @@ export default function TradeSetup({ s }: { s: SignalData }) {
   const nc = s.next_candle;
 
   return (
-    <div className="panel">
-      <div className="panel-title">Trade Setup</div>
-
+    <CollapsiblePanel title="Trade Setup">
       {nc && (
         <div className={`forecast forecast-${nc.direction}`}>
           <div className="forecast-head">
@@ -73,6 +72,6 @@ export default function TradeSetup({ s }: { s: SignalData }) {
       >
         View Full Analysis <span className="fa-arrow">↗</span>
       </button>
-    </div>
+    </CollapsiblePanel>
   );
 }

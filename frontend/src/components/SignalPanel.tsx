@@ -1,4 +1,5 @@
 import type { SignalData } from "../types";
+import CollapsiblePanel from "./CollapsiblePanel";
 
 const ARROWS = { up: "↑", down: "↓", neutral: "→" } as const;
 const RING_COLOR = { up: "#26a69a", down: "#ef5350", neutral: "#f0b90b" } as const;
@@ -28,12 +29,8 @@ function ConfidenceRing({ pct, bias }: { pct: number; bias: "up" | "down" | "neu
 export default function SignalPanel({ s }: { s: SignalData }) {
   const total = s.votes.up + s.votes.down + s.votes.neutral;
   return (
-    <div className="panel sig-panel">
-      <div className="panel-title">
-        Technical Signal
-        <span className="live-tag">● Live</span>
-      </div>
-
+    <CollapsiblePanel className="sig-panel" title="Technical Signal"
+      right={<span className="live-tag">● Live</span>}>
       <div className="sig-main">
         <div className={`sig-bias bias-${s.bias}`}>
           <div className="sig-arrow-circle">
@@ -80,6 +77,6 @@ export default function SignalPanel({ s }: { s: SignalData }) {
         Volatility: <b>{s.volatility}</b> (ATR {s.atr_pct}%)
         {total > 0 && <span className="vol-count"> · {total} indicators voting</span>}
       </div>
-    </div>
+    </CollapsiblePanel>
   );
 }

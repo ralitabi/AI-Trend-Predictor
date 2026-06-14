@@ -1,4 +1,5 @@
 import type { Prediction } from "../types";
+import CollapsiblePanel from "./CollapsiblePanel";
 
 const ARROWS = { up: "▲", down: "▼", neutral: "■" } as const;
 
@@ -6,12 +7,8 @@ export default function AICard({ p }: { p: Prediction }) {
   const ai = p.ai;
   const offline = ai.model === "none" || ai.model === "error";
   return (
-    <div className="panel" id="ai-analysis-card">
-      <div className="panel-title">
-        AI Analysis
-        <span className="ai-model">{offline ? "offline" : ai.model + (ai.cached ? " · cached" : "")}</span>
-      </div>
-
+    <CollapsiblePanel id="ai-analysis-card" title="AI Analysis"
+      right={<span className="ai-model">{offline ? "offline" : ai.model + (ai.cached ? " · cached" : "")}</span>}>
       <div className={`bias bias-${ai.direction}`}>
         <span className="bias-arrow">{ARROWS[ai.direction]}</span>
         <span className="bias-label">{ai.direction === "neutral" ? "NO EDGE" : ai.direction.toUpperCase()}</span>
@@ -40,6 +37,6 @@ export default function AICard({ p }: { p: Prediction }) {
           </ul>
         </details>
       )}
-    </div>
+    </CollapsiblePanel>
   );
 }
