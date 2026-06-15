@@ -221,6 +221,10 @@ function Dashboard() {
     setLivePrice(null);
     setTickDir("");
     prevTickRef.current = null;
+    // user-drawn trendlines/Fibonacci are tied to the old asset's price/time —
+    // clear them and exit draw mode when the market or timeframe changes.
+    setClearSignal((c) => c + 1);
+    setDrawMode(null);
   }, [symbol, tf]);
 
   const friendly = (e: unknown) =>
