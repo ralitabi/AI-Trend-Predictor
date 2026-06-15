@@ -267,6 +267,38 @@ export interface OrderBookResponse {
   book: OrderBook | null;
 }
 
+export interface NewsHeadline {
+  title: string;
+  sentiment: "bullish" | "bearish" | "neutral";
+}
+
+export interface NewsSentiment {
+  score: number;
+  label: string;
+  bullish: number;
+  bearish: number;
+  headlines: NewsHeadline[];
+}
+
+export interface NewsResponse {
+  symbol: string;
+  asset_class: string;
+  sentiment: NewsSentiment;
+}
+
+export interface CalendarEvent {
+  title: string;
+  country: string;
+  time: number;
+  impact: string;
+  forecast: string;
+  previous: string;
+}
+
+export interface CalendarResponse {
+  events: CalendarEvent[];
+}
+
 export interface BestWindow {
   start_utc: number;
   end_utc: number;

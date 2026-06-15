@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  fetchAssets, fetchAvgLine, fetchCandles, fetchContext, fetchForecastHistory, fetchOrderBook,
-  fetchOverlays, fetchPatterns, fetchPrediction, fetchSignal, fetchTrendcast, fetchVolProfile,
+  fetchAssets, fetchAvgLine, fetchCalendar, fetchCandles, fetchContext, fetchForecastHistory,
+  fetchNews, fetchOrderBook, fetchOverlays, fetchPatterns, fetchPrediction, fetchSignal,
+  fetchTrendcast, fetchVolProfile,
 } from "./api";
 import type {
-  AssetInfo, AvgLinePoint, Candle, ForecastHistItem, MarketContextResponse, OrderBookResponse,
-  OverlaysResponse, PatternItem, PatternsResponse, Prediction, SignalData,
-  TrendForecast as TrendForecastData, VolProfileResponse,
+  AssetInfo, AvgLinePoint, CalendarEvent, Candle, ForecastHistItem, MarketContextResponse,
+  NewsResponse, OrderBookResponse, OverlaysResponse, PatternItem, PatternsResponse, Prediction,
+  SignalData, TrendForecast as TrendForecastData, VolProfileResponse,
 } from "./types";
 import Chart, { type LiveFeed, type OverlaySeries } from "./components/Chart";
 import AssetPicker from "./components/AssetPicker";
@@ -20,6 +21,7 @@ import PatternsPanel from "./components/PatternsPanel";
 import MarketContext from "./components/MarketContext";
 import VolumeProfile from "./components/VolumeProfile";
 import OrderBook from "./components/OrderBook";
+import NewsPanel from "./components/NewsPanel";
 import AICard from "./components/AICard";
 import ReportPage from "./components/ReportPage";
 import { useIndicators } from "./useIndicators";
@@ -104,6 +106,8 @@ function Dashboard() {
   const [marketCtx, setMarketCtx] = useState<MarketContextResponse | null>(null);
   const [volProfile, setVolProfile] = useState<VolProfileResponse | null>(null);
   const [orderBook, setOrderBook] = useState<OrderBookResponse | null>(null);
+  const [news, setNews] = useState<NewsResponse | null>(null);
+  const [calendar, setCalendar] = useState<CalendarEvent[]>([]);
   const [showPatterns, setShowPatterns] = useState(
     () => localStorage.getItem("trend-patterns") !== "false",
   );
@@ -325,6 +329,24 @@ function Dashboard() {
     }
   }, []);
 
+  const loadNews = useCallback(async (sym: string) => {
+    try {
+      const r = await fetchNews(sym);
+      if (viewKey.current.split("|")[0] === sym) setNews(r);
+    } catch {
+      /* news is supplementary */
+    }
+  }, []);
+
+  const loadCalendar = useCallback(async () => {
+    try {
+      const r = await fetchCalendar();
+      setCalendar(r.events);
+    } catch {
+      /* calendar is supplementary */
+    }
+  }, []);
+
   const loadPrediction = useCallback(async (sym: string, timeframe: string) => {
     const key = `${sym}|${timeframe}`;
     try {
@@ -462,6 +484,24 @@ function Dashboard() {
     }, 5000);
     return () => clearInterval(id);
   }, [symbol, isBinance, loadOrderBook]);
+
+  // News sentiment (per asset class) — slow refresh; headlines change rarely.
+  useEffect(() => {
+    loadNews(symbol);
+    const id = setInterval(() => {
+      if (!document.hidden) loadNews(symbol);
+    }, 300_000);
+    return () => clearInterval(id);
+  }, [symbol, loadNews]);
+
+  // Economic calendar (global) — refresh every 30 min.
+  useEffect(() => {
+    loadCalendar();
+    const id = setInterval(() => {
+      if (!document.hidden) loadCalendar();
+    }, 1_800_000);
+    return () => clearInterval(id);
+  }, [loadCalendar]);
 
   // Toggling indicators on/off ⇒ immediately re-score the signal.
   useEffect(() => {
@@ -690,6 +730,7 @@ function Dashboard() {
           {marketCtx && <MarketContext c={marketCtx} />}
           {orderBook && <OrderBook o={orderBook} />}
           {volProfile && <VolumeProfile p={volProfile} />}
+          {(news || calendar.length > 0) && <NewsPanel news={news} events={calendar} />}
           {prediction && <AICard p={prediction} />}
         </aside>
       </main>

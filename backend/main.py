@@ -11,10 +11,10 @@ load_dotenv()
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from data import cache, context, crypto, market, orderbook, store
+from data import cache, calendar, context, crypto, market, orderbook, store
 from data.assets import ASSETS, TIMEFRAMES, get_asset
 from engine import (
-    ai, avgline, forecast, indicators, overlays, patterns, scoring, signal, timing, trendcast,
+    ai, avgline, forecast, indicators, news, overlays, patterns, scoring, signal, timing, trendcast,
     trends, volprofile,
 )
 
@@ -297,6 +297,23 @@ def get_trends(symbol: str, tf: str = Query("1h")):
     except RuntimeError as e:
         raise HTTPException(502, str(e))
     return {"symbol": asset["symbol"], "tf": tf, "trend": trends.analyze(data, TF_SECONDS[tf])}
+
+
+@app.get("/news/{symbol}")
+def get_news(symbol: str):
+    """Headline sentiment for the asset's class (lexicon-based, key-free)."""
+    try:
+        asset = get_asset(symbol)
+    except KeyError as e:
+        raise HTTPException(404, str(e))
+    return {"symbol": asset["symbol"], "asset_class": asset["asset_class"],
+            "sentiment": news.sentiment(asset["asset_class"])}
+
+
+@app.get("/calendar")
+def get_calendar():
+    """Upcoming high/medium-impact economic events."""
+    return {"events": calendar.upcoming()}
 
 
 @app.get("/volprofile/{symbol}")

@@ -1,7 +1,7 @@
 import type {
-  AccuracyReport, AssetInfo, AvgLineResponse, Candle, ForecastHistResponse, MarketContextResponse,
-  OrderBookResponse, OverlaysResponse, PatternsResponse, Prediction, SignalData, TrendcastResponse,
-  TrendResponse, VolProfileResponse,
+  AccuracyReport, AssetInfo, AvgLineResponse, CalendarResponse, Candle, ForecastHistResponse,
+  MarketContextResponse, NewsResponse, OrderBookResponse, OverlaysResponse, PatternsResponse,
+  Prediction, SignalData, TrendcastResponse, TrendResponse, VolProfileResponse,
 } from "./types";
 
 // Backend base URL resolution:
@@ -64,6 +64,12 @@ export const fetchVolProfile = (symbol: string, tf: string) =>
 
 export const fetchOrderBook = (symbol: string) =>
   get<OrderBookResponse>(`/orderbook/${symbol}`);
+
+export const fetchNews = (symbol: string) =>
+  get<NewsResponse>(`/news/${symbol}`);
+
+export const fetchCalendar = () =>
+  get<CalendarResponse>("/calendar");
 
 export const fetchReport = (symbol?: string, tf?: string) => {
   const q = new URLSearchParams();
