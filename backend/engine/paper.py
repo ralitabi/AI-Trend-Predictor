@@ -6,12 +6,18 @@ the dashboard shows. A later candle that touches the stop or target closes it:
 target hit = +R:R in R-multiples, stop hit = −1R. This builds an honest,
 hands-off track record of what trading the signals would have done.
 """
-from data import store
+from data import cache, store
 
 
 def maybe_open(symbol: str, tf: str, bias: str, plan: dict | None, price: float) -> None:
     if bias not in ("up", "down") or not plan or price <= 0:
         return
+    # /signal is polled ~every 1.5s; throttle the DB check to at most once per
+    # ~20s per market/timeframe so the hot path doesn't hit SQLite every poll.
+    ck = f"papercheck:{symbol}:{tf}"
+    if cache.get(ck):
+        return
+    cache.put(ck, True, ttl=20)
     if store.has_open_trade(symbol, tf):
         return
     store.open_paper_trade(

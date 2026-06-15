@@ -26,7 +26,7 @@ export default function MarketContext({ c }: { c: MarketContextResponse }) {
   if (!fg && !fn) return null;
 
   return (
-    <CollapsiblePanel title="Market Context">
+    <CollapsiblePanel title="Market Context" defaultOpen={false}>
       {fg && (
         <div className="ctx-fg">
           <div className="ctx-fg-top">

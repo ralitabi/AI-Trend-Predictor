@@ -17,7 +17,7 @@ export default function OrderBook({ o }: { o: OrderBookResponse }) {
   const bidPct = b.imbalance_pct;
   const askPct = 100 - b.imbalance_pct;
   return (
-    <CollapsiblePanel title="Order Book"
+    <CollapsiblePanel title="Order Book" defaultOpen={false}
       right={<span className={`ob-tag ${bidPct >= 50 ? "buy" : "sell"}`}>{bidPct >= 50 ? "Buy" : "Sell"} pressure</span>}>
       <div className="ob-imbar">
         <span className="ob-bidbar" style={{ width: `${bidPct}%` }}>{Math.round(bidPct)}%</span>

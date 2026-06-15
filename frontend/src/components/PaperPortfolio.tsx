@@ -15,7 +15,7 @@ export default function PaperPortfolio({ p }: { p: Portfolio }) {
   if (!hasAny) return null;
   const net = p.net_r;
   return (
-    <CollapsiblePanel title="Paper Trading"
+    <CollapsiblePanel title="Paper Trading" defaultOpen={false}
       right={<span className={`pp-net ${net >= 0 ? "pos" : "neg"}`}>{net >= 0 ? "+" : ""}{net}R</span>}>
       <div className="pp-stats">
         <div className="pp-stat">

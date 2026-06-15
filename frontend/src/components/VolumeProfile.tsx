@@ -13,7 +13,7 @@ export default function VolumeProfile({ p }: { p: VolProfileResponse }) {
   if (!vp) return null;
   const rows = [...vp.bins].reverse(); // highest price at the top
   return (
-    <CollapsiblePanel title="Volume Profile">
+    <CollapsiblePanel title="Volume Profile" defaultOpen={false}>
       <div className="vp-rows">
         {rows.map((b, i) => {
           const w = vp.max_volume ? (b.volume / vp.max_volume) * 100 : 0;

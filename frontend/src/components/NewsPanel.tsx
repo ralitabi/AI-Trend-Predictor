@@ -21,7 +21,7 @@ export default function NewsPanel({ news, events }: { news: NewsResponse | null;
   const toneClass = s ? (s.score >= 15 ? "bullish" : s.score <= -15 ? "bearish" : "neutral") : "neutral";
 
   return (
-    <CollapsiblePanel title="News & Events"
+    <CollapsiblePanel title="News & Events" defaultOpen={false}
       right={s ? <span className={`news-tag news-${toneClass}`}>{s.label}</span> : undefined}>
       {s && (
         <>

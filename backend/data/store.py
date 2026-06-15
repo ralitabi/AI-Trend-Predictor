@@ -22,7 +22,9 @@ _lock = Lock()
 
 
 def _conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(_DB)
+    # timeout: wait up to 5s for a lock instead of instantly raising
+    # "database is locked" when serverless invocations write concurrently.
+    conn = sqlite3.connect(_DB, timeout=5)
     conn.execute(
         """CREATE TABLE IF NOT EXISTS predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

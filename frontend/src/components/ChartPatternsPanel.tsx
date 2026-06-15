@@ -13,7 +13,7 @@ const fmt = (n: number) =>
 export default function ChartPatternsPanel({ patterns }: { patterns: ChartPattern[] }) {
   if (patterns.length === 0) return null;
   return (
-    <CollapsiblePanel title="Chart Patterns">
+    <CollapsiblePanel title="Chart Patterns" defaultOpen={false}>
       <div className="cpat-list">
         {patterns.map((p, i) => (
           <div key={i} className={`cpat-row cpat-${p.direction}`}>
