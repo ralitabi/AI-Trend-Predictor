@@ -89,12 +89,16 @@ interface Props {
   patterns?: PatternItem[];
   /** A chart pattern's outline to trace (the most significant one) */
   chartPattern?: { outline: { time: number; price: number }[]; direction: string } | null;
+  /** Active drawing tool — click two points to draw a trendline / Fibonacci */
+  drawMode?: "trendline" | "fib" | null;
+  /** Increment to clear all user-drawn trendlines & Fibonacci levels */
+  clearSignal?: number;
   onTick?: (price: number) => void;
   /** Called after a WebSocket reconnect — history may have gaps, so refetch */
   onResync?: () => void;
 }
 
-export default function Chart({ candles, live, tf, levels, plan, forecast, forecastHistory, overlays, avgLine, patterns, chartPattern, onTick, onResync }: Props) {
+export default function Chart({ candles, live, tf, levels, plan, forecast, forecastHistory, overlays, avgLine, patterns, chartPattern, drawMode, clearSignal, onTick, onResync }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -106,6 +110,11 @@ export default function Chart({ candles, live, tf, levels, plan, forecast, forec
   const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const patternSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const overlayRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
+  // user drawing tools (trendlines + Fibonacci)
+  const drawModeRef = useRef<Props["drawMode"]>(null);
+  const pendingPtRef = useRef<{ time: number; price: number } | null>(null);
+  const drawnLinesRef = useRef<ISeriesApi<"Line">[]>([]);
+  const drawnPriceLinesRef = useRef<IPriceLine[]>([]);
   const lastBarRef = useRef<Bar | null>(null);
   const lastTickNotify = useRef(0);
 
@@ -200,6 +209,42 @@ export default function Chart({ candles, live, tf, levels, plan, forecast, forec
     avgProjSeriesRef.current = avgProjSeries;
     patternSeriesRef.current = patternSeries;
     markersRef.current = createSeriesMarkers(candleSeries, []);
+
+    // --- user drawing tools: click two points to draw a trendline / Fib ---
+    const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+    chart.subscribeClick((param) => {
+      const mode = drawModeRef.current;
+      if (!mode || param.time === undefined || !param.point) return;
+      const price = candleSeries.coordinateToPrice(param.point.y);
+      if (price == null) return;
+      const point = { time: param.time as unknown as number, price };
+      if (!pendingPtRef.current) {
+        pendingPtRef.current = point; // first anchor
+        return;
+      }
+      const a = pendingPtRef.current;
+      pendingPtRef.current = null;
+      if (mode === "trendline") {
+        const line = chart.addSeries(LineSeries, {
+          color: "#2e7bff", lineWidth: 2,
+          priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+        });
+        line.setData(
+          [a, point].sort((x, y) => x.time - y.time)
+            .map((p) => ({ time: p.time as UTCTimestamp, value: p.price })),
+        );
+        drawnLinesRef.current.push(line);
+      } else {
+        const hi = Math.max(a.price, point.price);
+        const diff = hi - Math.min(a.price, point.price);
+        for (const r of FIB_LEVELS) {
+          drawnPriceLinesRef.current.push(candleSeries.createPriceLine({
+            price: hi - diff * r, color: "rgba(245,166,35,0.8)", lineWidth: 1,
+            lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: `Fib ${r}`,
+          }));
+        }
+      }
+    });
     return () => chart.remove();
   }, []);
 
@@ -220,6 +265,24 @@ export default function Chart({ candles, live, tf, levels, plan, forecast, forec
       [...anchor, ...projected].map((p) => ({ time: p.time as UTCTimestamp, value: p.value })),
     );
   }, [avgLine]);
+
+  // keep the click handler's draw mode current; reset any half-finished anchor
+  useEffect(() => {
+    drawModeRef.current = drawMode ?? null;
+    pendingPtRef.current = null;
+  }, [drawMode]);
+
+  // clear all user drawings when the clear signal changes
+  useEffect(() => {
+    const chart = chartRef.current;
+    const series = candleSeriesRef.current;
+    if (!chart || !series) return;
+    drawnLinesRef.current.forEach((s) => chart.removeSeries(s));
+    drawnLinesRef.current = [];
+    drawnPriceLinesRef.current.forEach((pl) => series.removePriceLine(pl));
+    drawnPriceLinesRef.current = [];
+    pendingPtRef.current = null;
+  }, [clearSignal]);
 
   // trace the most significant chart pattern's outline through its swing pivots
   useEffect(() => {

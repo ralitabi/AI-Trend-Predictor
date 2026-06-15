@@ -686,6 +686,25 @@ body {
 .vbox-neutral .vbox-num { color: var(--amber); }
 .vol-count { color: var(--text-faint); }
 
+/* ---- drawing tools (trendline / Fibonacci) ---- */
+.draw-tools {
+  position: absolute; right: 12px; top: 12px; z-index: 5;
+  display: flex; gap: 6px;
+}
+.dt {
+  background: rgba(10,14,23,0.85); border: 1px solid var(--border); color: var(--text-dim);
+  border-radius: 8px; padding: 5px 9px; font-family: inherit; font-size: 11px; font-weight: 600;
+  cursor: pointer; backdrop-filter: blur(4px); transition: all 0.12s ease;
+}
+.dt:hover { color: var(--text); border-color: var(--accent); }
+.dt.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.draw-hint {
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 5;
+  background: rgba(41,98,255,0.92); color: #fff; font-size: 11px; font-weight: 600;
+  padding: 5px 12px; border-radius: 8px; pointer-events: none; backdrop-filter: blur(4px);
+}
+.chart-wrap.drawing .chart { cursor: crosshair; }
+
 /* ---- candle-close countdown (overlaid on the chart) ---- */
 .candle-timer {
   position: absolute; left: 12px; bottom: 12px; z-index: 4;

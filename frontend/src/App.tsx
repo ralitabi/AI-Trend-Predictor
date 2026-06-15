@@ -119,6 +119,8 @@ function Dashboard() {
   useEffect(() => {
     localStorage.setItem("trend-patterns", String(showPatterns));
   }, [showPatterns]);
+  const [drawMode, setDrawMode] = useState<"trendline" | "fib" | null>(null);
+  const [clearSignal, setClearSignal] = useState(0);
   const [livePrice, setLivePrice] = useState<number | null>(null);
   const [tickDir, setTickDir] = useState<"up" | "down" | "">("");
   const prevTickRef = useRef<number | null>(null);
@@ -722,8 +724,16 @@ function Dashboard() {
       {error && <div className="error-bar">{error}</div>}
 
       <main className="layout">
-        <section className="chart-wrap">
+        <section className={drawMode ? "chart-wrap drawing" : "chart-wrap"}>
           {loading && <div className="loading">Loading…</div>}
+          <div className="draw-tools">
+            <button className={drawMode === "trendline" ? "dt active" : "dt"} title="Trendline — click two points"
+              onClick={() => setDrawMode((m) => (m === "trendline" ? null : "trendline"))}>╱ Trend</button>
+            <button className={drawMode === "fib" ? "dt active" : "dt"} title="Fibonacci retracement — click two points"
+              onClick={() => setDrawMode((m) => (m === "fib" ? null : "fib"))}>𝑭 Fib</button>
+            <button className="dt" title="Clear all drawings" onClick={() => { setClearSignal((c) => c + 1); setDrawMode(null); }}>🗑</button>
+          </div>
+          {drawMode && <div className="draw-hint">Click two points to draw the {drawMode === "fib" ? "Fibonacci" : "trendline"} · click {drawMode === "fib" ? "𝑭 Fib" : "╱ Trend"} again to stop</div>}
           <Chart
             candles={candles}
             live={live}
@@ -736,6 +746,8 @@ function Dashboard() {
             avgLine={showAvgLine ? avgLine : undefined}
             patterns={showPatterns && patterns ? [...patterns.candlesticks, ...patterns.divergences] : undefined}
             chartPattern={showPatterns && chartPatterns.length > 0 ? chartPatterns[0] : null}
+            drawMode={drawMode}
+            clearSignal={clearSignal}
             onTick={onTick}
             onResync={onResync}
           />
