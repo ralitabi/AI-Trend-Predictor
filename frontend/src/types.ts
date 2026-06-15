@@ -206,6 +206,27 @@ export interface PatternsResponse {
   };
 }
 
+export interface FearGreed {
+  value: number;
+  classification: string;
+  timestamp: number;
+}
+
+export interface Funding {
+  symbol: string;
+  rate_pct: number;
+  annualized_pct: number;
+  next_funding_time: number;
+  mark_price: number;
+  sentiment: string;
+}
+
+export interface MarketContextResponse {
+  symbol: string;
+  fear_greed: FearGreed | null;
+  funding: Funding | null;
+}
+
 export interface BestWindow {
   start_utc: number;
   end_utc: number;

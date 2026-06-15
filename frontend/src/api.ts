@@ -1,5 +1,5 @@
 import type {
-  AccuracyReport, AssetInfo, AvgLineResponse, Candle, ForecastHistResponse,
+  AccuracyReport, AssetInfo, AvgLineResponse, Candle, ForecastHistResponse, MarketContextResponse,
   OverlaysResponse, PatternsResponse, Prediction, SignalData, TrendcastResponse, TrendResponse,
 } from "./types";
 
@@ -54,6 +54,9 @@ export const fetchTrendcast = (symbol: string, tf: string) =>
 
 export const fetchPatterns = (symbol: string, tf: string) =>
   get<PatternsResponse>(`/patterns/${symbol}?tf=${tf}`);
+
+export const fetchContext = (symbol: string) =>
+  get<MarketContextResponse>(`/context/${symbol}`);
 
 export const fetchReport = (symbol?: string, tf?: string) => {
   const q = new URLSearchParams();

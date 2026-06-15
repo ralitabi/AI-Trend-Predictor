@@ -11,7 +11,7 @@ load_dotenv()
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from data import cache, crypto, market, store
+from data import cache, context, crypto, market, store
 from data.assets import ASSETS, TIMEFRAMES, get_asset
 from engine import (
     ai, avgline, forecast, indicators, overlays, patterns, scoring, signal, timing, trendcast, trends,
@@ -296,6 +296,22 @@ def get_trends(symbol: str, tf: str = Query("1h")):
     except RuntimeError as e:
         raise HTTPException(502, str(e))
     return {"symbol": asset["symbol"], "tf": tf, "trend": trends.analyze(data, TF_SECONDS[tf])}
+
+
+@app.get("/context/{symbol}")
+def get_context(symbol: str):
+    """Market context — crypto Fear & Greed + perpetual funding (crypto only)."""
+    try:
+        asset = get_asset(symbol)
+    except KeyError as e:
+        raise HTTPException(404, str(e))
+    if asset["source"] != "binance":
+        return {"symbol": asset["symbol"], "fear_greed": None, "funding": None}
+    return {
+        "symbol": asset["symbol"],
+        "fear_greed": context.fear_greed(),
+        "funding": context.funding_rate(asset["symbol"]),
+    }
 
 
 @app.get("/patterns/{symbol}")

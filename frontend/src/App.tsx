@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  fetchAssets, fetchAvgLine, fetchCandles, fetchForecastHistory, fetchOverlays, fetchPatterns,
-  fetchPrediction, fetchSignal, fetchTrendcast,
+  fetchAssets, fetchAvgLine, fetchCandles, fetchContext, fetchForecastHistory, fetchOverlays,
+  fetchPatterns, fetchPrediction, fetchSignal, fetchTrendcast,
 } from "./api";
 import type {
-  AssetInfo, AvgLinePoint, Candle, ForecastHistItem, OverlaysResponse, PatternItem, PatternsResponse,
-  Prediction, SignalData, TrendForecast as TrendForecastData,
+  AssetInfo, AvgLinePoint, Candle, ForecastHistItem, MarketContextResponse, OverlaysResponse,
+  PatternItem, PatternsResponse, Prediction, SignalData, TrendForecast as TrendForecastData,
 } from "./types";
 import Chart, { type LiveFeed, type OverlaySeries } from "./components/Chart";
 import AssetPicker from "./components/AssetPicker";
@@ -16,6 +16,7 @@ import IndicatorPanel from "./components/IndicatorPanel";
 import TradeSetup from "./components/TradeSetup";
 import TrendForecast from "./components/TrendForecast";
 import PatternsPanel from "./components/PatternsPanel";
+import MarketContext from "./components/MarketContext";
 import AICard from "./components/AICard";
 import ReportPage from "./components/ReportPage";
 import { useIndicators } from "./useIndicators";
@@ -97,6 +98,7 @@ function Dashboard() {
   const indCtrl = useIndicators();
   const [trendcast, setTrendcast] = useState<TrendForecastData | null>(null);
   const [patterns, setPatterns] = useState<PatternsResponse | null>(null);
+  const [marketCtx, setMarketCtx] = useState<MarketContextResponse | null>(null);
   const [showPatterns, setShowPatterns] = useState(
     () => localStorage.getItem("trend-patterns") !== "false",
   );
@@ -290,6 +292,15 @@ function Dashboard() {
     }
   }, []);
 
+  const loadContext = useCallback(async (sym: string) => {
+    try {
+      const r = await fetchContext(sym);
+      if (viewKey.current.split("|")[0] === sym) setMarketCtx(r);
+    } catch {
+      /* market context is supplementary */
+    }
+  }, []);
+
   const loadPrediction = useCallback(async (sym: string, timeframe: string) => {
     const key = `${sym}|${timeframe}`;
     try {
@@ -391,6 +402,19 @@ function Dashboard() {
     }, ms);
     return () => clearInterval(id);
   }, [showPatterns, symbol, tf, loadPatterns]);
+
+  // Market context (crypto only): Fear & Greed + funding rate, refreshed slowly.
+  useEffect(() => {
+    if (!isBinance) {
+      setMarketCtx(null);
+      return;
+    }
+    loadContext(symbol);
+    const id = setInterval(() => {
+      if (!document.hidden) loadContext(symbol);
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [symbol, isBinance, loadContext]);
 
   // Toggling indicators on/off ⇒ immediately re-score the signal.
   useEffect(() => {
@@ -616,6 +640,7 @@ function Dashboard() {
           {signal && <TradeSetup s={signal} />}
           {trendcast && <TrendForecast f={trendcast} />}
           {showPatterns && patterns && <PatternsPanel p={patterns} />}
+          {marketCtx && <MarketContext c={marketCtx} />}
           {prediction && <AICard p={prediction} />}
         </aside>
       </main>
