@@ -8,6 +8,8 @@ Live candles, 17 technical indicators, regime-aware signals, AI reasoning, next-
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-2962ff?style=for-the-badge)](https://trading-ai.vercel.app)
 &nbsp;
+[![CI](https://img.shields.io/github/actions/workflow/status/ralitabi/Trading-AI/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/ralitabi/Trading-AI/actions/workflows/ci.yml)
+&nbsp;
 ![React](https://img.shields.io/badge/React-18-26a69a?style=for-the-badge&logo=react&logoColor=white)
 &nbsp;
 ![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?style=for-the-badge&logo=fastapi&logoColor=white)
@@ -60,8 +62,11 @@ Every signal carries a confidence level, and the engine deliberately returns **"
 | **Trend analysis** | Identifies the current trend, how long it has run, and a survival-based estimate of how much longer it may last |
 | **Average trend line** | A coloured moving average — yellow where the trend held, purple where it broke against its prediction, and a dashed orange projection of where it is heading next |
 | **Accuracy report** | Forward-tests every prediction and reconstructs historical accuracy: correct / slightly off / completely off, filterable by market and timeframe |
+| **Strategy backtest** | Replays the live signal + ATR plan over history into a track record — win rate, net R, profit factor, expectancy, max drawdown and a cumulative-R equity curve |
+| **Alerts** | Browser notifications on signal flips and price levels, optionally relayed to Telegram / Discord |
+| **Durable history** | Optional Turso / libSQL database so the accuracy report and paper-trading record survive serverless cold starts (falls back to SQLite automatically) |
 | **Customisable** | Toggle any indicator on/off, send it to the AI, or draw it on the chart — settings persist locally |
-| **Responsive** | Works on desktop and mobile, with collapsible panels and a resizable report drawer |
+| **Responsive** | Works on desktop and mobile, with collapsible panels, lazy-loaded panels on phones, and a resizable report drawer |
 
 ---
 
@@ -157,9 +162,9 @@ Contributions are welcome — new indicators, data sources, UI improvements, or 
 
 1. **Fork** the repository and create a branch: `git checkout -b feature/my-idea`
 2. Make your change. Keep the style of the surrounding code (TypeScript on the frontend, typed Python on the backend).
-3. Run the checks locally:
+3. Run the checks locally (the same ones CI runs):
    - Frontend: `cd frontend && npm run build` (type-checks and builds)
-   - Backend: make sure `uvicorn main:app` starts cleanly
+   - Backend: `cd backend && pip install -r requirements-dev.txt && pytest`
 4. **Commit** with a clear message and **open a pull request** describing what you changed and why.
 
 Good first contributions:
