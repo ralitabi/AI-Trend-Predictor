@@ -16,8 +16,8 @@ from pydantic import BaseModel
 from data import cache, calendar, context, crypto, db, market, orderbook, store
 from data.assets import ASSETS, TIMEFRAMES, get_asset
 from engine import (
-    ai, alerts, avgline, backtest, chartpatterns, forecast, indicators, news, overlays, paper,
-    patterns, scoring, signal, timing, trendcast, trends, volprofile,
+    ai, alerts, avgline, backtest, broadcast, chartpatterns, forecast, indicators, news, overlays,
+    paper, patterns, scoring, signal, timing, trendcast, trends, volprofile,
 )
 
 TF_SECONDS = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400, "1wk": 604800}
@@ -180,6 +180,17 @@ def snapshot(tf: str = Query("1h"), secret: str | None = Query(None),
     _require_cron(secret, authorization)
     tfs = [t.strip() for t in tf.split(",") if t.strip() in TIMEFRAMES] or ["1h"]
     return _run_snapshot(tfs)
+
+
+@app.get("/broadcast")
+def broadcast_signals(secret: str | None = Query(None), force: bool = Query(False),
+                      authorization: str | None = Header(None)):
+    """Telegram signal-service pass (all assets · 1h): saves the snapshot for each
+    and posts high-conviction directional setups to the group (with a rendered
+    chart), deduped to one per candle. `force=true` ignores the dedupe (testing).
+    Used by the cron / uptime pinger; optionally guarded by CRON_SECRET."""
+    _require_cron(secret, authorization)
+    return broadcast.run(_candles_for, _htf_trend, force=force)
 
 
 @app.get("/assets")

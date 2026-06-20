@@ -31,3 +31,10 @@ def test_snapshot_guard_when_secret_set(monkeypatch):
     monkeypatch.setattr(main, "CRON_SECRET", "topsecret")
     assert client.get("/snapshot?tf=1h").status_code == 401
     assert client.get("/snapshot?tf=1h&secret=wrong").status_code == 401
+
+
+def test_broadcast_guard_when_secret_set(monkeypatch):
+    # reject missing/wrong secret before any network work runs
+    monkeypatch.setattr(main, "CRON_SECRET", "topsecret")
+    assert client.get("/broadcast").status_code == 401
+    assert client.get("/broadcast?secret=wrong").status_code == 401

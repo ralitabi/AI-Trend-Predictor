@@ -83,14 +83,16 @@ or the raw `GET /_/backend/signals/{symbol}` and `GET /_/backend/history/{symbol
 
 Two ways to schedule it (use either or both):
 
-1. **Vercel Cron** — already configured in `vercel.json` (`/_/backend/snapshot?tf=1h`,
-   daily). On the **Hobby** plan cron runs at most once/day; on **Pro** change the
-   schedule to hourly (`0 * * * *`) for proper intraday collection.
+1. **Vercel Cron** — already configured in `vercel.json` (`/_/backend/broadcast`,
+   daily). `/broadcast` saves the 1h snapshot for every asset **and** posts the
+   Telegram signals (see §5). On the **Hobby** plan cron runs at most once/day; on
+   **Pro** change the schedule to hourly (`0 * * * *`) for proper intraday work.
 2. **External pinger (recommended, free, frequent)** — point
    [cron-job.org](https://cron-job.org) or [UptimeRobot](https://uptimerobot.com)
-   at `https://<your-app>/_/backend/snapshot?tf=1h` every 15–30 min. This also
-   keeps the function warm so the live site never has to cold-start. Add
-   `?tf=1h,4h,1d` for more timeframes (slower per call).
+   at `https://<your-app>/_/backend/broadcast` every 15–30 min. This saves the
+   history, posts due Telegram signals, **and** keeps the function warm so the
+   live site never cold-starts. (Use `/_/backend/snapshot?tf=1h,4h,1d` instead if
+   you only want to save more timeframes without broadcasting.)
 
 > **Lock it down (optional):** set a `CRON_SECRET` env var, then call
 > `/_/backend/snapshot?tf=1h&secret=YOUR_SECRET` (Vercel Cron sends it
@@ -100,6 +102,34 @@ Two ways to schedule it (use either or both):
 > configured (**§3**). Without Turso, every cold start still wipes the saved
 > history — so set `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` first. Check
 > `GET /_/backend/health` → `"durable": true` to confirm.
+
+---
+
+## 5. Telegram signal-service (auto-posted to a group/channel)
+
+The `/broadcast` pass (scheduled in §4) posts **high-conviction** directional
+setups to a Telegram chat — one message per market per candle, with a rendered
+candlestick chart (entry/stop/target + projected next candle). Setup:
+
+1. **Create a bot:** message **@BotFather** → `/newbot` → pick a name + a
+   `…bot` username → copy the **token** it gives you.
+2. **Create the group/channel** and add your bot (as a **member** for a group, or
+   an **admin** for a channel).
+3. **Get the chat id:** add **@RawDataBot** to the chat briefly — it prints the
+   `Chat ID` (a negative number like `-1001234567890`), then remove it. (Or open
+   `https://api.telegram.org/bot<TOKEN>/getUpdates` after sending a message.)
+4. **Set env vars** (Vercel → Settings → Environment Variables), then redeploy:
+   - `TELEGRAM_BOT_TOKEN` = the bot token
+   - `TELEGRAM_CHAT_ID`   = the chat id
+5. **Test:** `GET /_/backend/notify/config` should list `telegram`; hit
+   `GET /_/backend/broadcast?force=true` to post the current signals immediately
+   (`force` ignores the once-per-candle dedupe). Day to day, the cron/pinger
+   handles it.
+
+Tuning: the confidence threshold is `MIN_CONFIDENCE = 75` in
+`backend/engine/broadcast.py`; the same `CRON_SECRET` from §4 guards `/broadcast`.
+The browser 🔔 Alerts toggle also relays signal-flip / price alerts to the same
+chat (and to Discord via `DISCORD_WEBHOOK_URL`).
 
 ---
 

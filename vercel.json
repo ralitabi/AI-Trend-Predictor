@@ -22,6 +22,6 @@
     }
   },
   "crons": [
-    { "path": "/_/backend/snapshot?tf=1h", "schedule": "0 6 * * *" }
+    { "path": "/_/backend/broadcast", "schedule": "0 6 * * *" }
   ]
 }

@@ -64,6 +64,7 @@ Every signal carries a confidence level, and the engine deliberately returns **"
 | **Accuracy report** | Forward-tests every prediction and reconstructs historical accuracy: correct / slightly off / completely off, filterable by market and timeframe |
 | **Strategy backtest** | Replays the live signal + ATR plan over history into a track record — win rate, net R, profit factor, expectancy, max drawdown and a cumulative-R equity curve |
 | **Alerts** | Browser notifications on signal flips and price levels, optionally relayed to Telegram / Discord |
+| **Telegram signal-service** | A scheduled bot posts high-conviction setups to a Telegram group/channel — direction, time window, entry/stop/target and a rendered candlestick chart — one per market per candle |
 | **Durable history** | Optional Turso / libSQL database so the accuracy report and paper-trading record survive serverless cold starts (falls back to SQLite automatically) |
 | **Saved analysis & always-on** | A scheduled `/snapshot` collector continuously saves the analysis (signals, predictions, forecasts) for every asset so the record grows on its own — reviewable any time, with a `/health` endpoint to confirm what's saved |
 | **Customisable** | Toggle any indicator on/off, send it to the AI, or draw it on the chart — settings persist locally |

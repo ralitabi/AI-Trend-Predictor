@@ -17,11 +17,52 @@ import httpx
 def channels() -> list[str]:
     """Which relay channels are currently configured."""
     out = []
-    if os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID"):
+    if telegram_configured():
         out.append("telegram")
     if os.environ.get("DISCORD_WEBHOOK_URL"):
         out.append("discord")
     return out
+
+
+def telegram_configured() -> bool:
+    return bool(os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID"))
+
+
+def send_telegram(text: str) -> bool:
+    """Plain-text message to the configured Telegram chat. Returns success."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat = os.environ.get("TELEGRAM_CHAT_ID")
+    if not (token and chat):
+        return False
+    try:
+        r = httpx.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat, "text": text, "disable_web_page_preview": True},
+            timeout=15,
+        )
+        r.raise_for_status()
+        return True
+    except Exception:
+        return False
+
+
+def send_telegram_photo(caption: str, png: bytes) -> bool:
+    """Photo (PNG bytes) with a caption to the configured Telegram chat."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat = os.environ.get("TELEGRAM_CHAT_ID")
+    if not (token and chat) or not png:
+        return False
+    try:
+        r = httpx.post(
+            f"https://api.telegram.org/bot{token}/sendPhoto",
+            data={"chat_id": chat, "caption": caption[:1024]},
+            files={"photo": ("chart.png", png, "image/png")},
+            timeout=20,
+        )
+        r.raise_for_status()
+        return True
+    except Exception:
+        return False
 
 
 def notify(title: str, message: str = "") -> dict:

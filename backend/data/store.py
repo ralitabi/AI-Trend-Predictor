@@ -99,6 +99,16 @@ def _create_schema(conn) -> None:
         )"""
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_signals_sym_tf_ts ON signals (symbol, tf, ts)")
+    # broadcast dedupe — one Telegram signal per market/timeframe/candle.
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS broadcasts (
+            symbol TEXT NOT NULL,
+            tf TEXT NOT NULL,
+            candle_time INTEGER NOT NULL,
+            posted_at INTEGER,
+            PRIMARY KEY (symbol, tf, candle_time)
+        )"""
+    )
     conn.commit()
 
 
@@ -397,6 +407,25 @@ def signal_history(symbol: str, tf: str | None = None, limit: int = 200) -> list
             args.append(limit)
             rows = conn.execute(q, args).fetchall()
             return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+
+def mark_broadcast(symbol: str, tf: str, candle_time: int) -> bool:
+    """Claim the right to broadcast this market/timeframe/candle exactly once.
+    Returns True if this caller won the claim (should send), False if already
+    sent (skip) — atomic via the primary key, safe across serverless instances."""
+    with _lock:
+        conn = _conn()
+        try:
+            conn.execute(
+                "INSERT INTO broadcasts (symbol, tf, candle_time, posted_at) VALUES (?,?,?,?)",
+                (symbol, tf, int(candle_time), int(time.time())),
+            )
+            conn.commit()
+            return True
+        except Exception:
+            return False  # primary-key clash → already broadcast for this candle
         finally:
             conn.close()
 

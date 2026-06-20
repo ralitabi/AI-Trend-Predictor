@@ -47,6 +47,12 @@ def test_signal_snapshot_round_trip():
     assert rows[0]["resistance"] == 110.0
 
 
+def test_mark_broadcast_dedupes_per_candle():
+    assert store.mark_broadcast("BCAST", "1h", 1_700_000_000) is True
+    assert store.mark_broadcast("BCAST", "1h", 1_700_000_000) is False  # same candle → skip
+    assert store.mark_broadcast("BCAST", "1h", 1_700_003_600) is True   # next candle → allowed
+
+
 def test_counts_reports_tables():
     c = store.counts()
     for table in ("predictions", "signals", "forecasts", "paper_trades"):
