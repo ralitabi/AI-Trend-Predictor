@@ -6,7 +6,7 @@
 
 Live candles, 17 technical indicators, regime-aware signals, AI reasoning, next-candle forecasting and a self-scoring accuracy report — in a clean, broker-style interface.
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-2962ff?style=for-the-badge)](https://ai-trend-predictor-nu.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-2962ff?style=for-the-badge)](https://trading-ai.vercel.app)
 &nbsp;
 ![React](https://img.shields.io/badge/React-18-26a69a?style=for-the-badge&logo=react&logoColor=white)
 &nbsp;
@@ -14,7 +14,7 @@ Live candles, 17 technical indicators, regime-aware signals, AI reasoning, next-
 &nbsp;
 ![License](https://img.shields.io/badge/License-MIT-8891a5?style=for-the-badge)
 
-**[Open the live app →](https://ai-trend-predictor-nu.vercel.app)**
+**[Open the live app →](https://trading-ai.vercel.app)**
 
 <img src="docs/dashboard.png" alt="Trading AI dashboard" width="100%">
 
@@ -83,7 +83,7 @@ Every signal carries a confidence level, and the engine deliberately returns **"
 
 ### 1. Clone
 ```bash
-git clone https://github.com/ralitabi/AI-Trend-Predictor.git
+git clone https://github.com/ralitabi/Trading-AI.git
 cd AI-Trend-Predictor
 ```
 
@@ -167,7 +167,7 @@ Good first contributions:
 - Add a market in `backend/data/assets.py`
 - Improve the mobile layout or accessibility
 
-Found a bug or have an idea? [Open an issue](https://github.com/ralitabi/AI-Trend-Predictor/issues).
+Found a bug or have an idea? [Open an issue](https://github.com/ralitabi/Trading-AI/issues).
 
 ---
 

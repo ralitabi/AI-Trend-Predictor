@@ -633,7 +633,7 @@ function Dashboard() {
       <header className="topbar">
         <div className="logo">
           <img className="logo-img" alt="Trading AI"
-            src={theme === "dark" ? "/logo-mark-light.jpeg" : "/logo-mark-dark.jpeg"} />
+            src={theme === "dark" ? "/logo-mark-dark.jpeg" : "/logo-mark-light.jpeg"} />
           Trading <span>AI</span>
         </div>
         <AssetPicker assets={assets} symbol={symbol} onSelect={setSymbol} />
@@ -809,7 +809,7 @@ function Dashboard() {
       <footer className="app-footer">
         <div className="foot-disclaimer">
           <img className="foot-logo" alt="Trading AI"
-            src={theme === "dark" ? "/logo-mark-light.jpeg" : "/logo-mark-dark.jpeg"} />
+            src={theme === "dark" ? "/logo-mark-dark.jpeg" : "/logo-mark-light.jpeg"} />
           <div>
             <div className="foot-disc-title">Trading AI</div>
             <div className="foot-disc-sub">Real-time market intelligence</div>
