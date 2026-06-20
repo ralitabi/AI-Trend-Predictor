@@ -280,6 +280,7 @@ export default function ReportPage({ symbol: pSymbol, tf: pTf }: { symbol?: stri
       {by_market.length === 0 ? (
         <p className="report-empty">No scored predictions yet — they're graded one candle after they're made.</p>
       ) : (
+        <div className="table-scroll">
         <table className="report-table">
           <thead>
             <tr><th>Market</th><th>TF</th><th>Technical</th><th>AI</th></tr>
@@ -295,12 +296,14 @@ export default function ReportPage({ symbol: pSymbol, tf: pTf }: { symbol?: stri
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <h2>Recent scored predictions</h2>
       {recent.length === 0 ? (
         <p className="report-empty">Nothing scored yet.</p>
       ) : (
+        <div className="table-scroll">
         <table className="report-table">
           <thead>
             <tr>
@@ -326,6 +329,7 @@ export default function ReportPage({ symbol: pSymbol, tf: pTf }: { symbol?: stri
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <footer className="disclaimer">{report.disclaimer}</footer>

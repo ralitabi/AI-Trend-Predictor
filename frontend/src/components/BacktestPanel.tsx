@@ -105,6 +105,7 @@ export default function BacktestPanel({ bt, label }: { bt: BacktestResult; label
       </div>
 
       {bt.recent.length > 0 && (
+        <div className="table-scroll">
         <table className="report-table bt-table">
           <thead>
             <tr><th>Exit</th><th>Side</th><th>Entry</th><th>Exit px</th><th>Conf</th><th>R</th></tr>
@@ -124,6 +125,7 @@ export default function BacktestPanel({ bt, label }: { bt: BacktestResult; label
             ))}
           </tbody>
         </table>
+        </div>
       )}
       <div className="bt-note">
         Hypothetical, friction-free replay of the live signal + ATR plan over recent history

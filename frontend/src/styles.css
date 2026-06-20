@@ -691,6 +691,9 @@ body {
 .report-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
 .report-table .mono { font-family: "JetBrains Mono", monospace; }
 .report-empty { font-size: 13px; color: var(--text-dim); }
+/* wide tables scroll horizontally inside their own box instead of being clipped
+   (or stretching the page) on narrow screens */
+.table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* ---- strategy backtest + equity curve ---- */
 .bt-grid {
@@ -1254,6 +1257,8 @@ body {
   .report-head { flex-wrap: wrap; gap: 8px; }
   .report-table { font-size: 11px; }
   .report-table th, .report-table td { padding: 6px 6px; }
+  /* keep columns intact and let the box scroll sideways rather than wrap/clip */
+  .table-scroll .report-table { white-space: nowrap; }
   .trend-top { gap: 10px; }
 
   /* alerts: let the price-alert controls wrap instead of overflowing */
