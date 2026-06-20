@@ -2,17 +2,18 @@
 
 Run locally:  uvicorn main:app --reload --port 8000
 """
+import os
 import time
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from data import cache, calendar, context, crypto, market, orderbook, store
+from data import cache, calendar, context, crypto, db, market, orderbook, store
 from data.assets import ASSETS, TIMEFRAMES, get_asset
 from engine import (
     ai, alerts, avgline, backtest, chartpatterns, forecast, indicators, news, overlays, paper,
@@ -94,9 +95,91 @@ def _candles_for(symbol: str, tf: str, limit: int = 300) -> list[dict]:
     return market.fetch_candles(asset["yahoo"], tf, limit)
 
 
+def _maybe_log_signal(symbol: str, tf: str, analysis: dict, scored: dict) -> None:
+    """Persist a signal snapshot at most once per candle per market/timeframe, so
+    browsing the app quietly builds a reviewable analysis history without writing
+    on every ~1.5s poll."""
+    try:
+        bucket = int(time.time()) // TF_SECONDS.get(tf, 3600)
+        ck = f"snaplog:{symbol}:{tf}:{bucket}"
+        if cache.get(ck):
+            return
+        cache.put(ck, True, ttl=TF_SECONDS.get(tf, 3600))
+        store.log_signal(symbol, tf, analysis["price"], scored, analysis)
+    except Exception:
+        pass  # snapshot logging must never break the live signal
+
+
+CRON_SECRET = os.environ.get("CRON_SECRET")
+
+
+def _require_cron(secret: str | None, authorization: str | None) -> None:
+    """Open when CRON_SECRET is unset; otherwise require it (Vercel Cron sends it
+    as a Bearer token, an external pinger can pass ?secret=)."""
+    if not CRON_SECRET:
+        return
+    if secret != CRON_SECRET and authorization != f"Bearer {CRON_SECRET}":
+        raise HTTPException(401, "unauthorized")
+
+
+def _run_snapshot(tfs: list[str]) -> dict:
+    """For every tracked asset × timeframe: compute the analysis and persist a
+    signal snapshot + a (technical) prediction + the projected next candle. This
+    is what builds the saved record continuously, even with nobody on the site."""
+    logged, errors = 0, 0
+    for sym in ASSETS:
+        for tf in tfs:
+            try:
+                data = _candles_for(sym, tf, 300)
+                analysis = _analyze_closed(data)
+                scored = signal.score(analysis)
+                store.log_signal(sym, tf, analysis["price"], scored, analysis)
+                store.log_prediction(
+                    sym, tf, analysis["price"],
+                    {"bias": scored["bias"], "confidence": scored["confidence"],
+                     "volatility": analysis["volatility"]},
+                    {"direction": "neutral", "confidence": 0},  # technical-only; no AI cost
+                )
+                fc = forecast.project(data, TF_SECONDS[tf], scored["bias"], scored["confidence"])
+                if fc:
+                    store.log_forecast(sym, tf, fc)
+                logged += 1
+            except Exception:
+                errors += 1
+    return {"logged": logged, "errors": errors, "assets": len(ASSETS), "timeframes": tfs}
+
+
 @app.get("/")
 def root():
     return {"app": "Trading AI", "status": "ok", "disclaimer": DISCLAIMER}
+
+
+@app.get("/health")
+def health():
+    """Is the backend up and is data being saved durably? Shows the DB backend
+    and row counts so persistence can be confirmed at a glance."""
+    try:
+        c = store.counts()
+    except Exception as e:
+        c = {"error": type(e).__name__}
+    return {
+        "status": "ok",
+        "durable": db.is_remote(),
+        "db": "turso/libsql" if db.is_remote() else "sqlite (ephemeral on serverless cold starts)",
+        "counts": c,
+        "time": int(time.time()),
+    }
+
+
+@app.get("/snapshot")
+def snapshot(tf: str = Query("1h"), secret: str | None = Query(None),
+             authorization: str | None = Header(None)):
+    """Collector for the cron / uptime pinger: logs the current analysis for all
+    assets on the given timeframe(s) (comma-separated). Keeps the backend warm
+    and the saved history growing. Optionally guarded by CRON_SECRET."""
+    _require_cron(secret, authorization)
+    tfs = [t.strip() for t in tf.split(",") if t.strip() in TIMEFRAMES] or ["1h"]
+    return _run_snapshot(tfs)
 
 
 @app.get("/assets")
@@ -162,6 +245,8 @@ def get_signal(symbol: str, tf: str = Query("1h"),
         paper.maybe_open(asset["symbol"], tf, scored["bias"], plan, price_now)
     except Exception:
         pass  # paper-trade bookkeeping must never break the live signal
+    if indicators_on is None:  # only persist the default (un-toggled) read
+        _maybe_log_signal(asset["symbol"], tf, analysis, scored)
     change_pct = (price_now - data[-2]["close"]) / data[-2]["close"] * 100 if len(data) > 1 else 0.0
 
     return {
@@ -483,3 +568,14 @@ def get_history(symbol: str, tf: str | None = Query(None), limit: int = Query(10
     except KeyError as e:
         raise HTTPException(404, str(e))
     return {"symbol": asset["symbol"], "predictions": store.history(asset["symbol"], tf, limit)}
+
+
+@app.get("/signals/{symbol}")
+def get_signal_history(symbol: str, tf: str | None = Query(None), limit: int = Query(200, le=1000)):
+    """Saved analysis snapshots — the chart read (bias/confidence/regime/levels)
+    as it stood at each logged moment, reviewable any time."""
+    try:
+        asset = get_asset(symbol)
+    except KeyError as e:
+        raise HTTPException(404, str(e))
+    return {"symbol": asset["symbol"], "signals": store.signal_history(asset["symbol"], tf, limit)}

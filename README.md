@@ -65,6 +65,7 @@ Every signal carries a confidence level, and the engine deliberately returns **"
 | **Strategy backtest** | Replays the live signal + ATR plan over history into a track record — win rate, net R, profit factor, expectancy, max drawdown and a cumulative-R equity curve |
 | **Alerts** | Browser notifications on signal flips and price levels, optionally relayed to Telegram / Discord |
 | **Durable history** | Optional Turso / libSQL database so the accuracy report and paper-trading record survive serverless cold starts (falls back to SQLite automatically) |
+| **Saved analysis & always-on** | A scheduled `/snapshot` collector continuously saves the analysis (signals, predictions, forecasts) for every asset so the record grows on its own — reviewable any time, with a `/health` endpoint to confirm what's saved |
 | **Customisable** | Toggle any indicator on/off, send it to the AI, or draw it on the chart — settings persist locally |
 | **Responsive** | Works on desktop and mobile, with collapsible panels, lazy-loaded panels on phones, and a resizable report drawer |
 

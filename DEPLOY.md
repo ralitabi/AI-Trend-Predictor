@@ -67,6 +67,42 @@ SQLite, so nothing breaks. (`LIBSQL_URL` / `LIBSQL_AUTH_TOKEN` work as aliases.)
 
 ---
 
+## 4. Keep it collecting (always-on + saved history)
+
+On Vercel the backend is serverless — it only runs when something calls it, so
+nothing is saved while nobody has the site open. To keep the backend warm **and**
+continuously save the analysis, hit the collector endpoint on a schedule:
+
+    GET /_/backend/snapshot?tf=1h     → logs the current analysis for every asset
+    GET /_/backend/health             → confirms it's up + shows what's been saved
+
+`/snapshot` writes a signal snapshot + a technical prediction + the projected
+next candle for all 8 assets, so the accuracy report, backtest and saved
+analysis grow on their own. Review any time via the in-app **Accuracy Report**,
+or the raw `GET /_/backend/signals/{symbol}` and `GET /_/backend/history/{symbol}`.
+
+Two ways to schedule it (use either or both):
+
+1. **Vercel Cron** — already configured in `vercel.json` (`/_/backend/snapshot?tf=1h`,
+   daily). On the **Hobby** plan cron runs at most once/day; on **Pro** change the
+   schedule to hourly (`0 * * * *`) for proper intraday collection.
+2. **External pinger (recommended, free, frequent)** — point
+   [cron-job.org](https://cron-job.org) or [UptimeRobot](https://uptimerobot.com)
+   at `https://<your-app>/_/backend/snapshot?tf=1h` every 15–30 min. This also
+   keeps the function warm so the live site never has to cold-start. Add
+   `?tf=1h,4h,1d` for more timeframes (slower per call).
+
+> **Lock it down (optional):** set a `CRON_SECRET` env var, then call
+> `/_/backend/snapshot?tf=1h&secret=YOUR_SECRET` (Vercel Cron sends it
+> automatically). Without `CRON_SECRET` the endpoint is open.
+
+> **Important:** continuous collection only *persists* if a durable database is
+> configured (**§3**). Without Turso, every cold start still wipes the saved
+> history — so set `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` first. Check
+> `GET /_/backend/health` → `"durable": true` to confirm.
+
+---
+
 ## Updating later
 Push to `main` → both Render and Vercel auto-redeploy.
 

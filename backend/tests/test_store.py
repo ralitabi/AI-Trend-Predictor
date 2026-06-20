@@ -31,6 +31,29 @@ def test_paper_trade_lifecycle():
     assert store.has_open_trade("PAPERTST", "1h") is False
 
 
+def test_signal_snapshot_round_trip():
+    scored = {"bias": "up", "confidence": 71}
+    analysis = {
+        "volatility": "low", "adx": 27.4, "trend_strength": "strong",
+        "votes": {"up": 9, "down": 2, "neutral": 3},
+        "support": 99.0, "resistance": 110.0,
+    }
+    store.log_signal("SIGTEST", "1h", 100.5, scored, analysis)
+    rows = store.signal_history("SIGTEST", "1h")
+    assert rows and rows[0]["bias"] == "up"
+    assert rows[0]["confidence"] == 71
+    assert rows[0]["votes_up"] == 9
+    assert rows[0]["adx"] == 27.4
+    assert rows[0]["resistance"] == 110.0
+
+
+def test_counts_reports_tables():
+    c = store.counts()
+    for table in ("predictions", "signals", "forecasts", "paper_trades"):
+        assert table in c and isinstance(c[table], int)
+    assert "last_signal_ts" in c
+
+
 def test_forecast_upsert_keeps_latest():
     fc = {"time": 1_700_000_000, "open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5, "direction": "up"}
     store.log_forecast("FCTEST", "1h", fc)

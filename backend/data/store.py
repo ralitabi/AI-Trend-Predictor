@@ -76,6 +76,29 @@ def _create_schema(conn) -> None:
             r_multiple REAL
         )"""
     )
+    # signal snapshots — the analysis as it stood at a point in time, so the
+    # chart read (bias/confidence/regime/levels) is reviewable for any moment
+    # later, not just recomputed live.
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS signals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ts INTEGER NOT NULL,
+            symbol TEXT NOT NULL,
+            tf TEXT NOT NULL,
+            price REAL NOT NULL,
+            bias TEXT NOT NULL,
+            confidence INTEGER NOT NULL,
+            volatility TEXT,
+            adx REAL,
+            trend_strength TEXT,
+            votes_up INTEGER,
+            votes_down INTEGER,
+            votes_neutral INTEGER,
+            support REAL,
+            resistance REAL
+        )"""
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_signals_sym_tf_ts ON signals (symbol, tf, ts)")
     conn.commit()
 
 
@@ -331,5 +354,64 @@ def history(symbol: str, tf: str | None = None, limit: int = 100) -> list[dict]:
             args.append(limit)
             rows = conn.execute(q, args).fetchall()
             return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+
+def log_signal(symbol: str, tf: str, price: float, scored: dict, analysis: dict) -> None:
+    """Save the analysis as it stood now, so it can be reviewed for this moment
+    later instead of only recomputed live."""
+    votes = analysis.get("votes", {}) or {}
+    levels = {"support": analysis.get("support"), "resistance": analysis.get("resistance")}
+    with _lock:
+        conn = _conn()
+        try:
+            conn.execute(
+                "INSERT INTO signals (ts, symbol, tf, price, bias, confidence, volatility, adx,"
+                " trend_strength, votes_up, votes_down, votes_neutral, support, resistance)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    int(time.time()), symbol, tf, price,
+                    scored.get("bias", "neutral"), int(scored.get("confidence", 0)),
+                    analysis.get("volatility"), analysis.get("adx"),
+                    analysis.get("trend_strength"),
+                    votes.get("up"), votes.get("down"), votes.get("neutral"),
+                    levels["support"], levels["resistance"],
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def signal_history(symbol: str, tf: str | None = None, limit: int = 200) -> list[dict]:
+    with _lock:
+        conn = _conn()
+        try:
+            q = "SELECT * FROM signals WHERE symbol = ?"
+            args: list = [symbol]
+            if tf:
+                q += " AND tf = ?"
+                args.append(tf)
+            q += " ORDER BY ts DESC LIMIT ?"
+            args.append(limit)
+            rows = conn.execute(q, args).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+
+def counts() -> dict:
+    """Row counts per table — the health check uses this to show data is being
+    saved (and how much)."""
+    with _lock:
+        conn = _conn()
+        try:
+            out = {}
+            for table in ("predictions", "signals", "forecasts", "paper_trades"):
+                out[table] = conn.execute(f"SELECT COUNT(*) c FROM {table}").fetchone()["c"]
+            last = conn.execute("SELECT MAX(ts) m FROM signals").fetchone()["m"]
+            out["last_signal_ts"] = last
+            return out
         finally:
             conn.close()
