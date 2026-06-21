@@ -106,7 +106,39 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; border: 2px solid transparent; background-clip: padding-box; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 
-.app { display: flex; flex-direction: column; height: 100vh; }
+.app-shell { display: flex; height: 100vh; height: 100dvh; }
+.app { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+
+/* ---- left navigation rail ---- */
+.sidenav {
+  width: 76px; flex: none; display: flex; flex-direction: column; align-items: center;
+  background: var(--bg-panel); border-right: 1px solid var(--border); padding: 12px 8px; gap: 6px;
+}
+.sidenav-brand { width: 38px; height: 38px; margin-bottom: 10px; }
+.sidenav-brand img { width: 100%; height: 100%; border-radius: 9px; object-fit: cover; }
+.sidenav-items { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.sn-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%;
+  background: transparent; border: none; border-radius: 10px; padding: 9px 4px; cursor: pointer;
+  color: var(--text-dim); font-family: inherit; font-size: 10px; font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+.sn-item:hover { background: var(--bg-raised); color: var(--text); }
+.sn-item.active { background: var(--accent-soft); color: var(--accent); }
+.sn-label { letter-spacing: 0.2px; }
+
+/* ---- topbar tweaks ---- */
+.topbar-spacer { flex: 1; }
+.topbar-view {
+  font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* ---- full-page views (report / trades / alerts / settings) ---- */
+.view-wrap { flex: 1; min-height: 0; overflow-y: auto; padding: 18px; }
+.view-wrap.view-mid { max-width: 760px; margin: 0 auto; width: 100%; }
+.view-title { font-size: 20px; font-weight: 700; margin: 4px 0 16px; }
+.mount-hidden { display: none; }
 
 /* ---- top bar (broker terminal) ---- */
 .topbar {
@@ -419,6 +451,62 @@ body {
 .indbar-tag.neu { color: var(--text-dim); }
 .indbar-tag.down { color: var(--red); }
 .indbar-names { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+
+/* ---- chart toolbar ---- */
+.charttb {
+  flex: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 8px 10px;
+}
+.charttb-spacer { flex: 1; }
+.charttb-bias {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800;
+  letter-spacing: 0.6px; padding: 5px 11px; border-radius: 8px;
+}
+.charttb-bias.up { color: var(--green); background: rgba(38,166,154,0.14); }
+.charttb-bias.down { color: var(--red); background: rgba(239,83,80,0.14); }
+.charttb-bias.neutral { color: var(--amber); background: rgba(240,185,11,0.14); }
+.charttb-bias-arrow { font-size: 11px; }
+.charttb-bias-conf { font-family: "JetBrains Mono", monospace; font-weight: 700; opacity: 0.85; }
+.charttb-group { display: flex; gap: 6px; }
+.charttb-div { width: 1px; height: 22px; background: var(--border); }
+.tb-btn {
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-dim); font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 6px 11px; cursor: pointer; white-space: nowrap; transition: all 0.13s;
+}
+.tb-btn:hover { color: var(--text); border-color: var(--accent); }
+.tb-btn.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+/* ---- settings view ---- */
+.view-wrap.settings { max-width: 860px; margin: 0 auto; width: 100%; }
+.set-card {
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px;
+  padding: 18px 20px; margin-bottom: 14px;
+}
+.set-h { font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+.set-sub { font-size: 12.5px; color: var(--text-dim); margin: 0 0 14px; line-height: 1.55; }
+.set-themes { display: flex; gap: 10px; flex-wrap: wrap; }
+.set-theme {
+  display: inline-flex; align-items: center; gap: 9px; cursor: pointer;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-family: inherit; font-size: 13px; font-weight: 600; padding: 9px 14px;
+  transition: border-color 0.13s;
+}
+.set-theme:hover { border-color: var(--accent); }
+.set-theme.active { border-color: var(--accent); color: var(--accent); }
+.set-theme-swatch { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--border); }
+.set-rows { display: flex; flex-direction: column; gap: 1px; }
+.set-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; padding: 9px 2px; border-bottom: 1px solid var(--border);
+}
+.set-row:last-child { border-bottom: none; }
+.set-row span:first-child { color: var(--text-dim); }
+.set-row span:last-child { font-weight: 600; }
+.set-empty { font-size: 13px; color: var(--text-dim); padding: 8px 0; }
+/* settings reuses the IndicatorPanel; let it sit flush in the card */
+.set-card .ind-panel { background: transparent; border: none; padding: 0; }
 
 .sidebar {
   width: 392px; overflow-y: auto;
@@ -1255,7 +1343,19 @@ body {
 /* ============ Responsive: tablet & phone ============ */
 @media (max-width: 900px) {
   /* let the whole page scroll instead of locking to one viewport */
-  .app { height: auto; min-height: 100vh; min-height: 100dvh; max-width: 100vw; overflow-x: hidden; }
+  .app-shell { display: block; height: auto; }
+  .app { height: auto; min-height: 100vh; min-height: 100dvh; max-width: 100vw; overflow-x: hidden; overflow-y: visible; padding-bottom: 66px; }
+
+  /* nav rail becomes a fixed bottom bar */
+  .sidenav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
+    width: auto; height: 60px; flex-direction: row; padding: 5px 4px; gap: 0;
+    border-right: none; border-top: 1px solid var(--border);
+  }
+  .sidenav-brand { display: none; }
+  .sidenav-items { flex-direction: row; justify-content: space-around; }
+  .sn-item { flex: 1; padding: 5px 4px; font-size: 9px; }
+  .view-wrap { padding: 12px; }
   .topbar { height: auto; padding: 8px 12px; gap: 10px; flex-wrap: wrap; min-width: 0; }
   .report-btn { margin-left: 0; }
 

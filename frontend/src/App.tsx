@@ -13,9 +13,7 @@ import type {
 import Chart, { type LiveFeed, type OverlaySeries } from "./components/Chart";
 import AssetPicker from "./components/AssetPicker";
 import TimeframePicker from "./components/TimeframePicker";
-import IndicatorMenu from "./components/IndicatorMenu";
 import SignalPanel from "./components/SignalPanel";
-import IndicatorPanel from "./components/IndicatorPanel";
 import TradeSetup from "./components/TradeSetup";
 import TrendForecast from "./components/TrendForecast";
 import PatternsPanel from "./components/PatternsPanel";
@@ -30,6 +28,9 @@ import AlertsPanel from "./components/AlertsPanel";
 import IndicatorBar from "./components/IndicatorBar";
 import Lazy from "./components/Lazy";
 import ReportPage from "./components/ReportPage";
+import SideNav, { type View } from "./components/SideNav";
+import ChartToolbar from "./components/ChartToolbar";
+import SettingsView from "./components/SettingsView";
 import { useIndicators } from "./useIndicators";
 
 const IS_REPORT_VIEW = new URLSearchParams(window.location.search).get("view") === "report";
@@ -87,6 +88,7 @@ function Dashboard() {
   const [symbol, setSymbol] = useState("BTCUSDT");
   const [tf, setTf] = useState("1h");
   const [theme, setTheme] = useState(() => localStorage.getItem("trend-theme") || "dark");
+  const [view, setView] = useState<View>("chart");
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("trend-theme", theme);
@@ -141,33 +143,6 @@ function Dashboard() {
   useEffect(() => {
     localStorage.setItem("trend-time-open", String(timeOpen));
   }, [timeOpen]);
-
-  // in-app accuracy report drawer (collapsible + drag-resizable)
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reportCollapsed, setReportCollapsed] = useState(false);
-  const [reportWidth, setReportWidth] = useState(
-    () => Number(localStorage.getItem("trend-report-width")) || 460,
-  );
-  useEffect(() => {
-    localStorage.setItem("trend-report-width", String(reportWidth));
-  }, [reportWidth]);
-  const reportResizing = useRef(false);
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (!reportResizing.current) return;
-      setReportWidth(Math.min(900, Math.max(360, window.innerWidth - e.clientX)));
-    };
-    const onUp = () => {
-      reportResizing.current = false;
-      document.body.style.userSelect = "";
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, []);
 
   useEffect(() => {
     fetchAssets().then(setAssets).catch((e) => setError(String(e)));
@@ -632,7 +607,9 @@ function Dashboard() {
   const dataSource = isBinance ? "Binance" : "Yahoo Finance";
 
   return (
-    <div className="app">
+    <div className="app-shell">
+      <SideNav view={view} onChange={setView} theme={theme} />
+      <div className="app">
       <header className="topbar">
         <div className="logo">
           <img className="logo-img" alt="Trading AI"
@@ -641,39 +618,13 @@ function Dashboard() {
         </div>
         <AssetPicker assets={assets} symbol={symbol} onSelect={setSymbol} />
         <TimeframePicker tf={tf} onSelect={setTf} />
-        {signal && (
-          <IndicatorMenu
-            indicators={signal.indicators}
-            overlayable={overlayData?.overlayable ?? []}
-            ctrl={indCtrl}
-            showForecastHist={showForecastHist}
-            onToggleForecastHist={setShowForecastHist}
-            showAvgLine={showAvgLine}
-            onToggleAvgLine={setShowAvgLine}
-            showPatterns={showPatterns}
-            onTogglePatterns={setShowPatterns}
-          />
-        )}
-        <button
-          className={reportOpen ? "tab report-btn active" : "tab report-btn"}
-          title="Prediction accuracy report — collapsible & resizable panel"
-          onClick={() => {
-            setReportOpen((o) => !o);
-            setReportCollapsed(false);
-          }}
-        >
-          📊 Accuracy Report
-        </button>
-        <div className="theme-switch" role="group" aria-label="Theme">
-          {([["dark", "🌙"], ["light", "☀️"], ["pink", "🌸"]] as const).map(([t, icon]) => (
-            <button key={t} className={theme === t ? "ts-btn active" : "ts-btn"}
-              title={`${t[0].toUpperCase() + t.slice(1)} theme`} onClick={() => setTheme(t)}>
-              {icon}
-            </button>
-          ))}
-        </div>
+        <div className="topbar-spacer" />
+        <span className="topbar-view">{view === "chart" ? "" : view[0].toUpperCase() + view.slice(1)}</span>
       </header>
 
+      {error && <div className="error-bar">{error}</div>}
+
+      {view === "chart" && (<>
       <div className="price-header">
         <div className="ph-id">
           <span className="ph-star">★</span>
@@ -743,19 +694,23 @@ function Dashboard() {
         </div>
       </div>
 
-      {error && <div className="error-bar">{error}</div>}
-
       <main className="layout">
         <div className="chart-col">
+        <ChartToolbar
+          bias={signal?.bias}
+          confidence={signal?.confidence}
+          drawMode={drawMode}
+          setDrawMode={setDrawMode}
+          onClear={() => { setClearSignal((c) => c + 1); setDrawMode(null); }}
+          showForecastHist={showForecastHist}
+          setShowForecastHist={setShowForecastHist}
+          showAvgLine={showAvgLine}
+          setShowAvgLine={setShowAvgLine}
+          showPatterns={showPatterns}
+          setShowPatterns={setShowPatterns}
+        />
         <section className={drawMode ? "chart-wrap drawing" : "chart-wrap"}>
           {loading && <div className="loading">Loading…</div>}
-          <div className="draw-tools">
-            <button className={drawMode === "trendline" ? "dt active" : "dt"} title="Trendline — click two points"
-              onClick={() => setDrawMode((m) => (m === "trendline" ? null : "trendline"))}>╱ Trend</button>
-            <button className={drawMode === "fib" ? "dt active" : "dt"} title="Fibonacci retracement — click two points"
-              onClick={() => setDrawMode((m) => (m === "fib" ? null : "fib"))}>𝑭 Fib</button>
-            <button className="dt" title="Clear all drawings" onClick={() => { setClearSignal((c) => c + 1); setDrawMode(null); }}>🗑</button>
-          </div>
           {drawMode && <div className="draw-hint">Click two points to draw the {drawMode === "fib" ? "Fibonacci" : "trendline"} · click {drawMode === "fib" ? "𝑭 Fib" : "╱ Trend"} again to stop</div>}
           <Chart
             candles={candles}
@@ -792,23 +747,8 @@ function Dashboard() {
         </div>
         <aside className="sidebar">
           {signal ? <SignalPanel s={signal} /> : !error && <div className="panel">Loading signal…</div>}
-          {signal && (
-            <AlertsPanel
-              symbol={symbol}
-              tf={tf}
-              name={current?.name ?? symbol}
-              bias={signal.bias}
-              price={shownPrice}
-            />
-          )}
-          {signal && (
-            <IndicatorPanel
-              indicators={signal.indicators}
-              overlayable={overlayData?.overlayable ?? []}
-              ctrl={indCtrl}
-            />
-          )}
           {signal && <TradeSetup s={signal} />}
+          {prediction && <AICard p={prediction} />}
           {trendcast && <Lazy><TrendForecast f={trendcast} /></Lazy>}
           {showPatterns && patterns && <Lazy><PatternsPanel p={patterns} /></Lazy>}
           {showPatterns && chartPatterns.length > 0 && (
@@ -818,8 +758,6 @@ function Dashboard() {
           {orderBook && <Lazy><OrderBook o={orderBook} /></Lazy>}
           {volProfile && <Lazy><VolumeProfile p={volProfile} /></Lazy>}
           {(news || calendar.length > 0) && <Lazy><NewsPanel news={news} events={calendar} /></Lazy>}
-          {portfolio && <Lazy><PaperPortfolio p={portfolio} /></Lazy>}
-          {prediction && <Lazy><AICard p={prediction} /></Lazy>}
         </aside>
       </main>
 
@@ -849,48 +787,43 @@ function Dashboard() {
           </div>
         </div>
       </footer>
+      </>)}
 
-      {reportOpen && (
-        <div
-          className={reportCollapsed ? "report-drawer collapsed" : "report-drawer"}
-          style={{ width: reportCollapsed ? 44 : reportWidth }}
-        >
-          {!reportCollapsed && (
-            <div
-              className="report-resize"
-              title="Drag to resize"
-              onMouseDown={() => {
-                reportResizing.current = true;
-                document.body.style.userSelect = "none";
-              }}
-            />
-          )}
-          <div className="report-drawer-head">
-            <button
-              className="rd-icon"
-              title={reportCollapsed ? "Expand" : "Collapse"}
-              onClick={() => setReportCollapsed((c) => !c)}
-            >
-              {reportCollapsed ? "‹" : "›"}
-            </button>
-            {reportCollapsed ? (
-              <span className="rd-title-vert">ACCURACY REPORT</span>
-            ) : (
-              <>
-                <span className="rd-title">📊 Accuracy Report</span>
-                <button className="rd-icon rd-close" title="Close" onClick={() => setReportOpen(false)}>
-                  ✕
-                </button>
-              </>
-            )}
-          </div>
-          {!reportCollapsed && (
-            <div className="report-drawer-body">
-              <ReportPage symbol={symbol} tf={tf} />
-            </div>
-          )}
+      {view === "report" && (
+        <div className="view-wrap"><ReportPage symbol={symbol} tf={tf} /></div>
+      )}
+
+      {view === "trades" && (
+        <div className="view-wrap view-mid">
+          <h1 className="view-title">Paper-trading track record</h1>
+          {portfolio ? <PaperPortfolio p={portfolio} /> : <div className="panel">Loading…</div>}
         </div>
       )}
+
+      {view === "settings" && (
+        <SettingsView
+          theme={theme}
+          setTheme={setTheme}
+          indicators={signal?.indicators ?? []}
+          overlayable={overlayData?.overlayable ?? []}
+          ctrl={indCtrl}
+          dataSource={dataSource}
+          live={!!live}
+          symbol={symbol}
+          name={current?.name ?? symbol}
+          updated={signal?.updated}
+        />
+      )}
+
+      {/* Alerts stays mounted on every view so signal-flip / price alerts keep firing */}
+      <div className={view === "alerts" ? "view-wrap view-mid" : "mount-hidden"}>
+        {view === "alerts" && <h1 className="view-title">Alerts</h1>}
+        {signal && (
+          <AlertsPanel symbol={symbol} tf={tf} name={current?.name ?? symbol}
+            bias={signal.bias} price={shownPrice} />
+        )}
+      </div>
+      </div>
     </div>
   );
 }
