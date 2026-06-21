@@ -36,9 +36,11 @@ def test_build_message_short_with_horizon_avgline_window():
     msg = broadcast.build_message("Gold", "1h", scored, _analysis(), plan,
                                   None, tcast, bw, avg_proj, 1_700_000_000, 3600)
     assert "SELL" in msg and "going DOWN" in msg
-    assert "Best hours: 13:00" in msg
+    assert "Best hours to trade:" in msg and "PM" in msg  # AM/PM local, not UTC
+    assert "UTC" not in msg
     assert "Average line: falling" in msg
     assert "6h" in msg
+    assert "only sends at" not in msg  # footer line removed
 
 
 def test_avg_projection_direction():

@@ -6,7 +6,7 @@ scalp, a 1h intraday, a 1d swing, …), not a fixed timeframe. It only sends whe
 the chance is ≥80%, one message per market per candle (deduped), with a polished
 chart that includes the 17-indicator board. Runs server-side, 24/7.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from data import store
@@ -43,6 +43,26 @@ def _times_block(ts: int) -> list[str]:
         if clk:
             out.append(f"{label}: {clk}")
     return out
+
+
+def _hour_local(utc_hour: int, zone: str) -> str | None:
+    """A whole UTC hour-of-day rendered as local AM/PM for `zone` (today's date,
+    so DST is correct)."""
+    try:
+        ref = datetime.now(timezone.utc).replace(hour=int(utc_hour) % 24, minute=0,
+                                                 second=0, microsecond=0)
+        return ref.astimezone(ZoneInfo(zone)).strftime("%I:%M %p").lstrip("0")
+    except Exception:
+        return None
+
+
+def _best_hours_block(bw: dict) -> list[str]:
+    out = ["🕒 Best hours to trade:"]
+    for label, zone in _ZONES:
+        a, b = _hour_local(bw["start_utc"], zone), _hour_local(bw["end_utc"], zone)
+        if a and b:
+            out.append(f"{label}: {a} – {b}")
+    return out if len(out) > 1 else []
 
 
 def _avg_projection(points: list[dict], horizon: int = 8) -> dict | None:
@@ -103,9 +123,9 @@ def build_message(name: str, tf: str, scored: dict, analysis: dict, plan: dict,
     ]
     lines += _times_block(candle_open + tf_sec)
     if bw:
-        lines.append(f"\n🕒 Best hours: {int(bw['start_utc']):02d}:00–{int(bw['end_utc']):02d}:00 UTC")
+        lines.append("")
+        lines += _best_hours_block(bw)
     lines.append("\n📈 Chart + indicator board below")
-    lines.append("Trading AI · only sends at ≥80% chance")
     return "\n".join(lines)
 
 
