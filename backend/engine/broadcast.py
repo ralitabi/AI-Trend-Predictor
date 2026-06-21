@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from data import store
-from data.assets import ASSETS
+from data.assets import ASSETS, BROADCAST_SYMBOLS
 from engine import alerts, avgline, chartimg, forecast, indicators, signal, timing, trendcast
 
 TF_SECONDS = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400, "1wk": 604800}
@@ -135,7 +135,7 @@ def run(candles_for, htf_of, min_conf: int = MIN_CONFIDENCE, force: bool = False
     broadcast the single strongest ≥min_conf setup (deduped per candle).
     `candles_for(sym, tf, n)` and `htf_of(sym, tf) -> (htf, htf_trend)` injected
     by the API layer; `symbols` optionally limits the scan (for a targeted test)."""
-    targets = [s.upper() for s in symbols] if symbols else list(ASSETS)
+    targets = [s.upper() for s in symbols] if symbols else list(BROADCAST_SYMBOLS)
     sent = skipped = saved = errors = 0
     posted: list[str] = []
 

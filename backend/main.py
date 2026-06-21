@@ -127,7 +127,9 @@ def _run_snapshot(tfs: list[str]) -> dict:
     signal snapshot + a (technical) prediction + the projected next candle. This
     is what builds the saved record continuously, even with nobody on the site."""
     logged, errors = 0, 0
-    for sym in ASSETS:
+    for sym, asset in ASSETS.items():
+        if not asset.get("broadcast"):
+            continue  # only the lean signal subset (keeps the collector fast)
         for tf in tfs:
             try:
                 data = _candles_for(sym, tf, 300)
