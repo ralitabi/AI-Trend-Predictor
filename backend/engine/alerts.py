@@ -14,6 +14,33 @@ import os
 import httpx
 
 
+# Per-category routing: each asset class can post to its own group, e.g.
+# TELEGRAM_CHAT_CRYPTO / _FOREX / _COMMODITY / _INDEX / _STOCK. Any class without
+# its own group falls back to the single TELEGRAM_CHAT_ID.
+_CLASS_ENV = {
+    "crypto": "TELEGRAM_CHAT_CRYPTO",
+    "forex": "TELEGRAM_CHAT_FOREX",
+    "commodity": "TELEGRAM_CHAT_COMMODITY",
+    "index": "TELEGRAM_CHAT_INDEX",
+    "stock": "TELEGRAM_CHAT_STOCK",
+}
+
+
+def chat_for(asset_class: str | None) -> str | None:
+    """Which chat a signal for this asset class goes to (its category group,
+    else the single default group)."""
+    if asset_class:
+        specific = os.environ.get(_CLASS_ENV.get(asset_class, ""))
+        if specific:
+            return specific
+    return _default_chat()
+
+
+def _default_chat() -> str | None:
+    return os.environ.get("TELEGRAM_CHAT_ID") or next(
+        (os.environ[v] for v in _CLASS_ENV.values() if os.environ.get(v)), None)
+
+
 def channels() -> list[str]:
     """Which relay channels are currently configured."""
     out = []
@@ -25,13 +52,13 @@ def channels() -> list[str]:
 
 
 def telegram_configured() -> bool:
-    return bool(os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID"))
+    return bool(os.environ.get("TELEGRAM_BOT_TOKEN") and _default_chat())
 
 
-def send_telegram(text: str) -> bool:
-    """Plain-text message to the configured Telegram chat. Returns success."""
+def send_telegram(text: str, chat_id: str | None = None) -> bool:
+    """Plain-text message to a Telegram chat (default group if none given)."""
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat = os.environ.get("TELEGRAM_CHAT_ID")
+    chat = chat_id or _default_chat()
     if not (token and chat):
         return False
     try:
@@ -46,10 +73,10 @@ def send_telegram(text: str) -> bool:
         return False
 
 
-def send_telegram_photo(caption: str, png: bytes) -> bool:
-    """Photo (PNG bytes) with a caption to the configured Telegram chat."""
+def send_telegram_photo(caption: str, png: bytes, chat_id: str | None = None) -> bool:
+    """Photo (PNG bytes) with a caption to a Telegram chat (default if none)."""
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat = os.environ.get("TELEGRAM_CHAT_ID")
+    chat = chat_id or _default_chat()
     if not (token and chat) or not png:
         return False
     try:

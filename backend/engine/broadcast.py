@@ -221,7 +221,9 @@ def run(candles_for, htf_of, min_conf: int = MIN_CONFIDENCE, force: bool = False
             except Exception:
                 png = None
 
-            ok = alerts.send_telegram_photo(caption, png) if png else alerts.send_telegram(caption)
+            chat = alerts.chat_for(asset["asset_class"])  # route to the category's group
+            ok = (alerts.send_telegram_photo(caption, png, chat) if png
+                  else alerts.send_telegram(caption, chat))
             if ok:
                 sent += 1
                 posted.append(f"{sym}:{tf}")

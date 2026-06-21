@@ -1,54 +1,40 @@
 import { useMemo } from "react";
 import type { IndicatorDetail } from "../types";
 
-/** Indicator board strip shown directly below the price chart — a stacked
- *  bullish / neutral / bearish sentiment bar + counts + the names in each group.
- *  Mirrors the board on the Telegram signal image, live in the product. */
+/** Thin indicator-sentiment strip below the chart: counts + a slim
+ *  bullish/neutral/bearish bar + the overall lean. Compact, one row. */
 export default function IndicatorBar({ indicators }: { indicators: IndicatorDetail[] }) {
-  const { up, neu, down, total, lean } = useMemo(() => {
+  const { up, neu, down, total, lean, cls } = useMemo(() => {
     const avail = indicators.filter((i) => i.available !== false);
-    const up = avail.filter((i) => i.vote === "up");
-    const down = avail.filter((i) => i.vote === "down");
-    const neu = avail.filter((i) => i.vote === "neutral");
-    const total = avail.length || 1;
-    const diff = up.length - down.length;
+    const up = avail.filter((i) => i.vote === "up").length;
+    const down = avail.filter((i) => i.vote === "down").length;
+    const neu = avail.filter((i) => i.vote === "neutral").length;
+    const diff = up - down;
     const lean =
-      diff >= 3 ? "Leaning bullish" : diff <= -3 ? "Leaning bearish"
-        : diff > 0 ? "Slightly bullish" : diff < 0 ? "Slightly bearish" : "Mixed / no edge";
-    return { up, neu, down, total, lean };
+      diff >= 3 ? "Bullish" : diff <= -3 ? "Bearish"
+        : diff > 0 ? "Slightly bullish" : diff < 0 ? "Slightly bearish" : "Mixed";
+    const cls = diff > 0 ? "up" : diff < 0 ? "down" : "neu";
+    return { up, neu, down, total: avail.length || 1, lean, cls };
   }, [indicators]);
 
   if (!indicators.length) return null;
   const pct = (n: number) => `${(n / total) * 100}%`;
 
   return (
-    <div className="indbar">
-      <div className="indbar-head">
-        <span className="indbar-title">Indicator board · {up.length + neu.length + down.length} active</span>
-        <span className="indbar-lean">{lean}</span>
-      </div>
-
+    <div className="indbar" title={`${up} bullish · ${neu} neutral · ${down} bearish`}>
+      <span className="indbar-label">Indicators</span>
+      <span className="indbar-counts">
+        <span className="ic up">▲ {up}</span>
+        <span className="ic neu">■ {neu}</span>
+        <span className="ic down">▼ {down}</span>
+      </span>
       <div className="indbar-track" role="img"
-        aria-label={`${up.length} bullish, ${neu.length} neutral, ${down.length} bearish`}>
-        {up.length > 0 && <span className="indbar-seg up" style={{ width: pct(up.length) }}>{up.length}</span>}
-        {neu.length > 0 && <span className="indbar-seg neu" style={{ width: pct(neu.length) }}>{neu.length}</span>}
-        {down.length > 0 && <span className="indbar-seg down" style={{ width: pct(down.length) }}>{down.length}</span>}
+        aria-label={`${up} bullish, ${neu} neutral, ${down} bearish`}>
+        <span className="indbar-seg up" style={{ width: pct(up) }} />
+        <span className="indbar-seg neu" style={{ width: pct(neu) }} />
+        <span className="indbar-seg down" style={{ width: pct(down) }} />
       </div>
-
-      <div className="indbar-groups">
-        <div className="indbar-group">
-          <span className="indbar-tag up">▲ Bullish · {up.length}</span>
-          <span className="indbar-names">{up.map((i) => i.name).join("  ·  ") || "—"}</span>
-        </div>
-        <div className="indbar-group">
-          <span className="indbar-tag neu">■ Neutral · {neu.length}</span>
-          <span className="indbar-names">{neu.map((i) => i.name).join("  ·  ") || "—"}</span>
-        </div>
-        <div className="indbar-group">
-          <span className="indbar-tag down">▼ Bearish · {down.length}</span>
-          <span className="indbar-names">{down.map((i) => i.name).join("  ·  ") || "—"}</span>
-        </div>
-      </div>
+      <span className={`indbar-lean ${cls}`}>{lean}</span>
     </div>
   );
 }
