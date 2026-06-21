@@ -145,6 +145,7 @@ export default function Chart({ candles, live, tf, levels, plan, forecast, forec
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: tc.text,
         fontFamily: "'Inter', sans-serif",
+        attributionLogo: false,
       },
       grid: {
         vertLines: { color: tc.grid },

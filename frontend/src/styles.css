@@ -407,6 +407,38 @@ body {
 /* ---- layout ---- */
 .layout { display: flex; flex: 1; min-height: 0; gap: 12px; padding: 12px; }
 .chart-col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.chart-row { flex: 1; min-height: 0; display: flex; gap: 8px; }
+.chart-row .chart-wrap { flex: 1; min-width: 0; }
+
+/* volume-by-price strip on the left of the chart */
+.volprofile {
+  flex: 0 0 92px; display: flex; flex-direction: column; min-height: 0;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 8px 6px;
+}
+.vp-title { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--text-dim); text-align: center; }
+.vp-bins { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1px; margin-top: 6px; }
+.vp-row { flex: 1; min-height: 2px; display: flex; align-items: center; }
+.vp-bar { height: 100%; min-height: 2px; border-radius: 0 2px 2px 0; background: rgba(140,150,170,0.32); }
+.vp-bar.va { background: rgba(41,98,255,0.5); }
+.vp-bar.poc { background: var(--amber); }
+.vp-poc {
+  margin-top: 6px; font-family: "JetBrains Mono", monospace; font-size: 8.5px; font-weight: 700;
+  color: var(--amber); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* order-book buy/sell pressure bar (above the indicator strip) */
+.pressure {
+  flex: none; display: flex; align-items: center; gap: 10px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px;
+}
+.pr-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); white-space: nowrap; }
+.pr-track { flex: 1; display: flex; height: 18px; border-radius: 6px; overflow: hidden; background: var(--bg-elevated); }
+.pr-buy, .pr-sell {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: #0b0e14; white-space: nowrap; transition: width 0.4s ease;
+}
+.pr-buy { background: var(--green); }
+.pr-sell { background: var(--red); }
 .chart-wrap {
   flex: 1; position: relative; min-width: 0;
   background: var(--bg-panel); border: 1px solid var(--border);
@@ -1367,6 +1399,9 @@ body {
   /* report drawer becomes a full-width sheet */
   .report-drawer:not(.collapsed) { width: 100% !important; }
   .report-resize { display: none; }
+
+  /* hide the side volume-profile strip on phones — the chart needs the width */
+  .volprofile { display: none; }
 }
 
 @media (max-width: 560px) {

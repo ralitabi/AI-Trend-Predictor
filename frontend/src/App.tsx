@@ -19,8 +19,8 @@ import TrendForecast from "./components/TrendForecast";
 import PatternsPanel from "./components/PatternsPanel";
 import ChartPatternsPanel from "./components/ChartPatternsPanel";
 import MarketContext from "./components/MarketContext";
-import VolumeProfile from "./components/VolumeProfile";
-import OrderBook from "./components/OrderBook";
+import VolumeProfileBar from "./components/VolumeProfileBar";
+import PressureBar from "./components/PressureBar";
 import NewsPanel from "./components/NewsPanel";
 import PaperPortfolio from "./components/PaperPortfolio";
 import AlertsPanel from "./components/AlertsPanel";
@@ -608,7 +608,7 @@ function Dashboard() {
 
   return (
     <div className="app-shell">
-      <SideNav view={view} onChange={setView} theme={theme} />
+      <SideNav view={view} onChange={setView} />
       <div className="app">
       <header className="topbar">
         <div className="logo">
@@ -709,6 +709,8 @@ function Dashboard() {
           showPatterns={showPatterns}
           setShowPatterns={setShowPatterns}
         />
+        <div className="chart-row">
+        {volProfile?.profile && <VolumeProfileBar p={volProfile.profile} />}
         <section className={drawMode ? "chart-wrap drawing" : "chart-wrap"}>
           {loading && <div className="loading">Loading…</div>}
           {drawMode && <div className="draw-hint">Click two points to draw the {drawMode === "fib" ? "Fibonacci" : "trendline"} · click {drawMode === "fib" ? "𝑭 Fib" : "╱ Trend"} again to stop</div>}
@@ -743,6 +745,8 @@ function Dashboard() {
             </div>
           )}
         </section>
+        </div>
+        {orderBook?.book && <PressureBar book={orderBook.book} />}
         {signal && <IndicatorBar indicators={signal.indicators} />}
         </div>
         <aside className="sidebar">
@@ -755,16 +759,12 @@ function Dashboard() {
             <Lazy><ChartPatternsPanel patterns={chartPatterns} /></Lazy>
           )}
           {marketCtx && <Lazy><MarketContext c={marketCtx} /></Lazy>}
-          {orderBook && <Lazy><OrderBook o={orderBook} /></Lazy>}
-          {volProfile && <Lazy><VolumeProfile p={volProfile} /></Lazy>}
           {(news || calendar.length > 0) && <Lazy><NewsPanel news={news} events={calendar} /></Lazy>}
         </aside>
       </main>
 
       <footer className="app-footer">
         <div className="foot-disclaimer">
-          <img className="foot-logo" alt="Trading AI"
-            src={theme === "dark" ? "/logo-mark-dark.jpeg" : "/logo-mark-light.jpeg"} />
           <div>
             <div className="foot-disc-title">Trading AI</div>
             <div className="foot-disc-sub">Real-time market intelligence</div>

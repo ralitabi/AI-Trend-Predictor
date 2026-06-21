@@ -25,13 +25,10 @@ const ITEMS: { key: View; label: string }[] = [
   { key: "settings", label: "Settings" },
 ];
 
-export default function SideNav({ view, onChange, theme }:
-  { view: View; onChange: (v: View) => void; theme: string }) {
+export default function SideNav({ view, onChange }:
+  { view: View; onChange: (v: View) => void }) {
   return (
     <nav className="sidenav" aria-label="Primary">
-      <div className="sidenav-brand">
-        <img src={theme === "dark" ? "/logo-mark-dark.jpeg" : "/logo-mark-light.jpeg"} alt="Trading AI" />
-      </div>
       <div className="sidenav-items">
         {ITEMS.map((it) => (
           <button
