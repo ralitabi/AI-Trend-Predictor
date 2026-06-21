@@ -1,63 +1,17 @@
 import type { SignalData } from "../types";
 import CollapsiblePanel from "./CollapsiblePanel";
-import RiskMeter from "./RiskMeter";
 
 const ARROWS = { up: "▲", down: "▼", neutral: "■" } as const;
 
 const fmt = (n: number) =>
   n >= 100 ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : n.toFixed(5);
 
-/** UTC hour (0–23) → the viewer's local time, e.g. "5 PM". */
-function utcHourLocal(h: number): string {
-  const d = new Date();
-  d.setUTCHours(h, 0, 0, 0);
-  return d.toLocaleTimeString([], { hour: "numeric", hour12: true });
-}
-
-const SAFETY_TONE = { safe: "good", caution: "mixed", risky: "bad" } as const;
-const MARKET_TONE = { good: "good", mixed: "mixed", poor: "bad" } as const;
-const MARKET_SUB = {
-  good: "Trending · clean",
-  mixed: "Choppy in spots",
-  poor: "Hard to trade",
-} as const;
-
 export default function TradeSetup({ s }: { s: SignalData }) {
   const pctFrom = (level: number) => (((level - s.price) / s.price) * 100).toFixed(2);
   const nc = s.next_candle;
-  const safety = s.safety;
-  const market = s.market;
-  const bw = s.best_window;
-  const tfu = s.tf.toUpperCase();
 
   return (
     <CollapsiblePanel title="Trade Setup">
-      {(safety || market) && (
-        <div className={`safety safety-${safety?.level ?? "caution"}`}>
-          <div className="meters-row">
-            {safety && (
-              <RiskMeter compact title={`Trade · ${tfu}`} score={safety.score}
-                tone={SAFETY_TONE[safety.level]} label={safety.level.toUpperCase()}
-                sub={safety.action} factors={safety.factors}
-                leftCap="SAFE" rightCap="RISKY" />
-            )}
-            {market && (
-              <RiskMeter compact title={`Market · ${tfu}`} score={market.score}
-                tone={MARKET_TONE[market.level]} label={market.level.toUpperCase()}
-                sub={MARKET_SUB[market.level]} factors={market.factors}
-                leftCap="GOOD" rightCap="CHOPPY" />
-            )}
-          </div>
-          {safety && <div className="meters-headline">{safety.headline}</div>}
-          {bw && (
-            <div className="safety-time">
-              Best hours to trade: <b>{utcHourLocal(bw.start_utc)} – {utcHourLocal(bw.end_utc)}</b> (your time)
-              {bw.intensity >= 1.15 && <span className="safety-time-note"> · {bw.intensity}× the usual movement</span>}
-            </div>
-          )}
-        </div>
-      )}
-
       {nc && (
         <div className={`forecast forecast-${nc.direction}`}>
           <div className="forecast-head">
@@ -109,15 +63,6 @@ export default function TradeSetup({ s }: { s: SignalData }) {
           </div>
         </div>
       )}
-
-      <button
-        className="full-analysis-btn"
-        onClick={() =>
-          document.getElementById("ai-analysis-card")?.scrollIntoView({ behavior: "smooth", block: "start" })
-        }
-      >
-        View Full Analysis <span className="fa-arrow">↗</span>
-      </button>
     </CollapsiblePanel>
   );
 }

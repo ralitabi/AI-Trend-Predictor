@@ -23,8 +23,8 @@ import VolumeProfile from "./components/VolumeProfile";
 import OrderBook from "./components/OrderBook";
 import NewsPanel from "./components/NewsPanel";
 import PaperPortfolio from "./components/PaperPortfolio";
-import AICard from "./components/AICard";
 import AlertsPanel from "./components/AlertsPanel";
+import MetersPanel from "./components/MetersPanel";
 import IndicatorBar from "./components/IndicatorBar";
 import Lazy from "./components/Lazy";
 import ReportPage from "./components/ReportPage";
@@ -746,9 +746,9 @@ function Dashboard() {
         {signal && <IndicatorBar indicators={signal.indicators} />}
         </div>
         <aside className="sidebar">
+          {signal && <MetersPanel s={signal} />}
           {signal ? <SignalPanel s={signal} /> : !error && <div className="panel">Loading signal…</div>}
           {signal && <TradeSetup s={signal} />}
-          {prediction && <AICard p={prediction} />}
           {trendcast && <Lazy><TrendForecast f={trendcast} /></Lazy>}
           {showPatterns && patterns && <Lazy><PatternsPanel p={patterns} /></Lazy>}
           {showPatterns && chartPatterns.length > 0 && (
