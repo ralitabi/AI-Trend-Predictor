@@ -184,13 +184,18 @@ def snapshot(tf: str = Query("1h"), secret: str | None = Query(None),
 
 @app.get("/broadcast")
 def broadcast_signals(secret: str | None = Query(None), force: bool = Query(False),
+                      min_conf: int | None = Query(None),
                       authorization: str | None = Header(None)):
     """Telegram signal-service pass (all assets · 1h): saves the snapshot for each
     and posts high-conviction directional setups to the group (with a rendered
-    chart), deduped to one per candle. `force=true` ignores the dedupe (testing).
-    Used by the cron / uptime pinger; optionally guarded by CRON_SECRET."""
+    chart), deduped to one per candle. `force=true` ignores the dedupe and
+    `min_conf=` overrides the 80% threshold (both for a manual test). Used by the
+    cron / uptime pinger; optionally guarded by CRON_SECRET."""
     _require_cron(secret, authorization)
-    return broadcast.run(_candles_for, _htf_trend, force=force)
+    kwargs: dict = {"force": force}
+    if min_conf is not None:
+        kwargs["min_conf"] = min_conf
+    return broadcast.run(_candles_for, _htf_trend, **kwargs)
 
 
 @app.get("/assets")
