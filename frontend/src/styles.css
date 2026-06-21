@@ -434,7 +434,7 @@ body {
 .indbar-counts { display: flex; gap: 10px; font-family: "JetBrains Mono", monospace;
   font-size: 12px; font-weight: 700; white-space: nowrap; }
 .ic.up { color: var(--green); }
-.ic.neu { color: var(--text-dim); }
+.ic.neu { color: var(--amber); }
 .ic.down { color: var(--red); }
 .indbar-track {
   flex: 1; min-width: 40px; display: flex; height: 7px; border-radius: 4px;
@@ -442,12 +442,12 @@ body {
 }
 .indbar-seg { height: 100%; transition: width 0.4s ease; }
 .indbar-seg.up { background: var(--green); }
-.indbar-seg.neu { background: #7f8aa3; }
+.indbar-seg.neu { background: var(--amber); box-shadow: 0 0 7px rgba(240, 185, 11, 0.6); }
 .indbar-seg.down { background: var(--red); }
 .indbar-lean { font-size: 12px; font-weight: 700; white-space: nowrap; }
 .indbar-lean.up { color: var(--green); }
 .indbar-lean.down { color: var(--red); }
-.indbar-lean.neu { color: var(--text-dim); }
+.indbar-lean.neu { color: var(--amber); }
 
 /* ---- chart toolbar ---- */
 .charttb {
