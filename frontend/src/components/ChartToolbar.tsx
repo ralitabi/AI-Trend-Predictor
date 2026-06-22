@@ -1,6 +1,12 @@
+import type { SafetyInfo, MarketInfo } from "../types";
+import RiskMeter from "./RiskMeter";
+
 interface Props {
   bias?: "up" | "down" | "neutral";
   confidence?: number;
+  safety?: SafetyInfo;
+  market?: MarketInfo;
+  tf?: string;
   drawMode: "trendline" | "fib" | null;
   setDrawMode: (m: "trendline" | "fib" | null) => void;
   onClear: () => void;
@@ -10,6 +16,8 @@ interface Props {
   setShowAvgLine: (v: boolean) => void;
   showPatterns: boolean;
   setShowPatterns: (v: boolean) => void;
+  rightOpen: boolean;
+  onToggleRight: () => void;
 }
 
 const BIAS = {
@@ -18,14 +26,19 @@ const BIAS = {
   neutral: { label: "NO EDGE", arrow: "■", cls: "neutral" },
 } as const;
 
-/** Toolbar attached above the chart: live bias chip + chart overlay toggles +
- *  drawing tools — keeps all chart controls on the chart (TradingView-style). */
+const SAFETY_TONE = { safe: "good", caution: "mixed", risky: "bad" } as const;
+const MARKET_TONE = { good: "good", mixed: "mixed", poor: "bad" } as const;
+
+/** Toolbar above the chart: bias chip + the two risk gauges + overlay toggles +
+ *  drawing tools + a button to collapse the right panel. */
 export default function ChartToolbar({
-  bias, confidence, drawMode, setDrawMode, onClear,
+  bias, confidence, safety, market, tf, drawMode, setDrawMode, onClear,
   showForecastHist, setShowForecastHist, showAvgLine, setShowAvgLine,
-  showPatterns, setShowPatterns,
+  showPatterns, setShowPatterns, rightOpen, onToggleRight,
 }: Props) {
   const b = bias ? BIAS[bias] : null;
+  const tfu = tf ? tf.toUpperCase() : "";
+
   return (
     <div className="charttb">
       {b && (
@@ -36,18 +49,33 @@ export default function ChartToolbar({
         </span>
       )}
 
+      {safety && (
+        <div className="charttb-meter">
+          <RiskMeter compact title={`Trade · ${tfu}`} score={safety.score}
+            tone={SAFETY_TONE[safety.level]} label={safety.level.toUpperCase()}
+            leftCap="SAFE" rightCap="RISKY" />
+        </div>
+      )}
+      {market && (
+        <div className="charttb-meter">
+          <RiskMeter compact title={`Market · ${tfu}`} score={market.score}
+            tone={MARKET_TONE[market.level]} label={market.level.toUpperCase()}
+            leftCap="GOOD" rightCap="CHOPPY" />
+        </div>
+      )}
+
       <div className="charttb-spacer" />
 
       <div className="charttb-group" role="group" aria-label="Chart overlays">
         <button className={`tb-btn${showForecastHist ? " on" : ""}`}
           onClick={() => setShowForecastHist(!showForecastHist)}
-          title="Predicted-candle history — faint ghost candles over the real ones">Forecast</button>
+          title="Predicted-candle history">Forecast</button>
         <button className={`tb-btn${showAvgLine ? " on" : ""}`}
           onClick={() => setShowAvgLine(!showAvgLine)}
-          title="Average trend line + forward projection">Avg line</button>
+          title="Average trend line + projection">Avg line</button>
         <button className={`tb-btn${showPatterns ? " on" : ""}`}
           onClick={() => setShowPatterns(!showPatterns)}
-          title="Candlestick & chart patterns + divergences">Patterns</button>
+          title="Candlestick & chart patterns">Patterns</button>
       </div>
 
       <span className="charttb-div" />
@@ -55,12 +83,17 @@ export default function ChartToolbar({
       <div className="charttb-group" role="group" aria-label="Drawing tools">
         <button className={`tb-btn${drawMode === "trendline" ? " on" : ""}`}
           onClick={() => setDrawMode(drawMode === "trendline" ? null : "trendline")}
-          title="Trendline — click two points">╱ Trend</button>
+          title="Trendline">╱ Trend</button>
         <button className={`tb-btn${drawMode === "fib" ? " on" : ""}`}
           onClick={() => setDrawMode(drawMode === "fib" ? null : "fib")}
-          title="Fibonacci retracement — click two points">𝑭 Fib</button>
-        <button className="tb-btn" onClick={onClear} title="Clear all drawings">Clear</button>
+          title="Fibonacci retracement">𝑭 Fib</button>
+        <button className="tb-btn" onClick={onClear} title="Clear drawings">Clear</button>
       </div>
+
+      <button className="tb-collapse" onClick={onToggleRight}
+        title={rightOpen ? "Hide side panel" : "Show side panel"} aria-label="Toggle side panel">
+        {rightOpen ? "⟩" : "⟨"}
+      </button>
     </div>
   );
 }

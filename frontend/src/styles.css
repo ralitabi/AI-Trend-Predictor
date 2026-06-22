@@ -426,19 +426,18 @@ body {
   color: var(--amber); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* order-book buy/sell pressure bar (above the indicator strip) */
+/* order-book buy/sell pressure bar — thin, above the indicator strip */
 .pressure {
   flex: none; display: flex; align-items: center; gap: 10px;
-  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 5px 12px;
 }
 .pr-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); white-space: nowrap; }
-.pr-track { flex: 1; display: flex; height: 18px; border-radius: 6px; overflow: hidden; background: var(--bg-elevated); }
-.pr-buy, .pr-sell {
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 800; color: #0b0e14; white-space: nowrap; transition: width 0.4s ease;
-}
-.pr-buy { background: var(--green); }
-.pr-sell { background: var(--red); }
+.pr-track { flex: 1; min-width: 40px; display: flex; height: 7px; border-radius: 4px; overflow: hidden; background: var(--bg-elevated); }
+.pr-buy { background: var(--green); transition: width 0.4s ease; }
+.pr-sell { background: var(--red); transition: width 0.4s ease; }
+.pr-nums { display: flex; gap: 10px; font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.pr-b { color: var(--green); }
+.pr-s { color: var(--red); }
 .chart-wrap {
   flex: 1; position: relative; min-width: 0;
   background: var(--bg-panel); border: 1px solid var(--border);
@@ -506,6 +505,28 @@ body {
 }
 .tb-btn:hover { color: var(--text); border-color: var(--accent); }
 .tb-btn.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+/* compact risk gauges inside the chart toolbar (beside the bias chip) */
+.charttb-meter { flex: 0 0 auto; }
+.charttb-meter .riskmeter { width: auto; gap: 0; }
+.charttb-meter .rm-title { font-size: 8px; margin-bottom: -2px; }
+.charttb-meter .rm-svg { max-width: 104px; }
+.charttb-meter .rm-readout { margin-top: -10px; }
+.charttb-meter .rm-level { font-size: 11px; }
+
+/* collapse toggles */
+.tb-collapse {
+  margin-left: 2px; background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text-dim); cursor: pointer; font-size: 13px; padding: 6px 9px;
+}
+.tb-collapse:hover { color: var(--text); border-color: var(--accent); }
+.rail-toggle {
+  background: transparent; border: none; color: var(--text-dim); cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 4px 8px; border-radius: 8px;
+}
+.rail-toggle:hover { color: var(--text); background: var(--bg-raised); }
+.app-shell.rail-collapsed .sidenav { display: none; }
+.layout.panel-collapsed .sidebar { display: none; }
 
 /* ---- settings view ---- */
 .view-wrap.settings { max-width: 860px; margin: 0 auto; width: 100%; }
@@ -1402,6 +1423,10 @@ body {
 
   /* hide the side volume-profile strip on phones — the chart needs the width */
   .volprofile { display: none; }
+
+  /* left rail is the bottom nav on phones — never let it collapse away */
+  .rail-toggle { display: none; }
+  .app-shell.rail-collapsed .sidenav { display: flex; }
 }
 
 @media (max-width: 560px) {

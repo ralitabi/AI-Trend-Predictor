@@ -19,12 +19,10 @@ import TrendForecast from "./components/TrendForecast";
 import PatternsPanel from "./components/PatternsPanel";
 import ChartPatternsPanel from "./components/ChartPatternsPanel";
 import MarketContext from "./components/MarketContext";
-import VolumeProfileBar from "./components/VolumeProfileBar";
 import PressureBar from "./components/PressureBar";
 import NewsPanel from "./components/NewsPanel";
 import PaperPortfolio from "./components/PaperPortfolio";
 import AlertsPanel from "./components/AlertsPanel";
-import MetersPanel from "./components/MetersPanel";
 import IndicatorBar from "./components/IndicatorBar";
 import Lazy from "./components/Lazy";
 import ReportPage from "./components/ReportPage";
@@ -89,6 +87,10 @@ function Dashboard() {
   const [tf, setTf] = useState("1h");
   const [theme, setTheme] = useState(() => localStorage.getItem("trend-theme") || "dark");
   const [view, setView] = useState<View>("chart");
+  const [leftOpen, setLeftOpen] = useState(() => localStorage.getItem("trend-left") !== "false");
+  const [rightOpen, setRightOpen] = useState(() => localStorage.getItem("trend-right") !== "false");
+  useEffect(() => { localStorage.setItem("trend-left", String(leftOpen)); }, [leftOpen]);
+  useEffect(() => { localStorage.setItem("trend-right", String(rightOpen)); }, [rightOpen]);
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("trend-theme", theme);
@@ -607,10 +609,12 @@ function Dashboard() {
   const dataSource = isBinance ? "Binance" : "Yahoo Finance";
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${leftOpen ? "" : " rail-collapsed"}`}>
       <SideNav view={view} onChange={setView} />
       <div className="app">
       <header className="topbar">
+        <button className="rail-toggle" onClick={() => setLeftOpen((o) => !o)}
+          title="Toggle menu" aria-label="Toggle menu">☰</button>
         <div className="logo">
           <img className="logo-img" alt="Trading AI"
             src={theme === "dark" ? "/logo-mark-dark.jpeg" : "/logo-mark-light.jpeg"} />
@@ -694,11 +698,14 @@ function Dashboard() {
         </div>
       </div>
 
-      <main className="layout">
+      <main className={`layout${rightOpen ? "" : " panel-collapsed"}`}>
         <div className="chart-col">
         <ChartToolbar
           bias={signal?.bias}
           confidence={signal?.confidence}
+          safety={signal?.safety}
+          market={signal?.market}
+          tf={tf}
           drawMode={drawMode}
           setDrawMode={setDrawMode}
           onClear={() => { setClearSignal((c) => c + 1); setDrawMode(null); }}
@@ -708,9 +715,9 @@ function Dashboard() {
           setShowAvgLine={setShowAvgLine}
           showPatterns={showPatterns}
           setShowPatterns={setShowPatterns}
+          rightOpen={rightOpen}
+          onToggleRight={() => setRightOpen((o) => !o)}
         />
-        <div className="chart-row">
-        {volProfile?.profile && <VolumeProfileBar p={volProfile.profile} />}
         <section className={drawMode ? "chart-wrap drawing" : "chart-wrap"}>
           {loading && <div className="loading">Loading…</div>}
           {drawMode && <div className="draw-hint">Click two points to draw the {drawMode === "fib" ? "Fibonacci" : "trendline"} · click {drawMode === "fib" ? "𝑭 Fib" : "╱ Trend"} again to stop</div>}
@@ -745,12 +752,10 @@ function Dashboard() {
             </div>
           )}
         </section>
-        </div>
         {orderBook?.book && <PressureBar book={orderBook.book} />}
         {signal && <IndicatorBar indicators={signal.indicators} />}
         </div>
         <aside className="sidebar">
-          {signal && <MetersPanel s={signal} />}
           {signal ? <SignalPanel s={signal} /> : !error && <div className="panel">Loading signal…</div>}
           {signal && <TradeSetup s={signal} />}
           {trendcast && <Lazy><TrendForecast f={trendcast} /></Lazy>}
@@ -762,31 +767,6 @@ function Dashboard() {
           {(news || calendar.length > 0) && <Lazy><NewsPanel news={news} events={calendar} /></Lazy>}
         </aside>
       </main>
-
-      <footer className="app-footer">
-        <div className="foot-disclaimer">
-          <div>
-            <div className="foot-disc-title">Trading AI</div>
-            <div className="foot-disc-sub">Real-time market intelligence</div>
-          </div>
-        </div>
-        <div className="foot-meta">
-          <div className="foot-meta-item">
-            <span className="foot-meta-label">Connection</span>
-            <span className="foot-meta-val">
-              <span className={live ? "live-dot" : "delayed-dot"} /> {live ? "Live" : "Delayed"}
-            </span>
-          </div>
-          <div className="foot-meta-item">
-            <span className="foot-meta-label">Data Source</span>
-            <span className="foot-meta-val">{dataSource}</span>
-          </div>
-          <div className="foot-meta-item">
-            <span className="foot-meta-label">Last Update</span>
-            <span className="foot-meta-val">{new Date((signal?.updated ?? now / 1000) * 1000).toLocaleTimeString()}</span>
-          </div>
-        </div>
-      </footer>
       </>)}
 
       {view === "report" && (
