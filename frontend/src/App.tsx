@@ -24,7 +24,7 @@ import NewsPanel from "./components/NewsPanel";
 import PaperPortfolio from "./components/PaperPortfolio";
 import AlertsPanel from "./components/AlertsPanel";
 import IndicatorBar from "./components/IndicatorBar";
-import Lazy from "./components/Lazy";
+import FearGreedBar from "./components/FearGreedBar";
 import ReportPage from "./components/ReportPage";
 import SideNav, { type View } from "./components/SideNav";
 import ChartToolbar from "./components/ChartToolbar";
@@ -88,9 +88,7 @@ function Dashboard() {
   const [theme, setTheme] = useState(() => localStorage.getItem("trend-theme") || "dark");
   const [view, setView] = useState<View>("chart");
   const [leftOpen, setLeftOpen] = useState(() => localStorage.getItem("trend-left") !== "false");
-  const [rightOpen, setRightOpen] = useState(() => localStorage.getItem("trend-right") !== "false");
   useEffect(() => { localStorage.setItem("trend-left", String(leftOpen)); }, [leftOpen]);
-  useEffect(() => { localStorage.setItem("trend-right", String(rightOpen)); }, [rightOpen]);
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("trend-theme", theme);
@@ -698,14 +696,13 @@ function Dashboard() {
         </div>
       </div>
 
-      <main className={`layout${rightOpen ? "" : " panel-collapsed"}`}>
+      <main className="layout">
         <div className="chart-col">
         <ChartToolbar
           bias={signal?.bias}
           confidence={signal?.confidence}
           safety={signal?.safety}
           market={signal?.market}
-          tf={tf}
           drawMode={drawMode}
           setDrawMode={setDrawMode}
           onClear={() => { setClearSignal((c) => c + 1); setDrawMode(null); }}
@@ -715,9 +712,9 @@ function Dashboard() {
           setShowAvgLine={setShowAvgLine}
           showPatterns={showPatterns}
           setShowPatterns={setShowPatterns}
-          rightOpen={rightOpen}
-          onToggleRight={() => setRightOpen((o) => !o)}
         />
+        <div className="chart-row">
+        {marketCtx?.fear_greed && <FearGreedBar fg={marketCtx.fear_greed} />}
         <section className={drawMode ? "chart-wrap drawing" : "chart-wrap"}>
           {loading && <div className="loading">Loading…</div>}
           {drawMode && <div className="draw-hint">Click two points to draw the {drawMode === "fib" ? "Fibonacci" : "trendline"} · click {drawMode === "fib" ? "𝑭 Fib" : "╱ Trend"} again to stop</div>}
@@ -752,22 +749,24 @@ function Dashboard() {
             </div>
           )}
         </section>
+        </div>
         {orderBook?.book && <PressureBar book={orderBook.book} />}
         {signal && <IndicatorBar indicators={signal.indicators} />}
         </div>
-        <aside className="sidebar">
-          {signal ? <SignalPanel s={signal} /> : !error && <div className="panel">Loading signal…</div>}
-          {signal && <TradeSetup s={signal} />}
-          {trendcast && <Lazy><TrendForecast f={trendcast} /></Lazy>}
-          {showPatterns && patterns && <Lazy><PatternsPanel p={patterns} /></Lazy>}
-          {showPatterns && chartPatterns.length > 0 && (
-            <Lazy><ChartPatternsPanel patterns={chartPatterns} /></Lazy>
-          )}
-          {marketCtx && <Lazy><MarketContext c={marketCtx} /></Lazy>}
-          {(news || calendar.length > 0) && <Lazy><NewsPanel news={news} events={calendar} /></Lazy>}
-        </aside>
       </main>
       </>)}
+
+      {view === "signal" && (
+        <div className="view-wrap signal-view">
+          {signal ? <SignalPanel s={signal} /> : <div className="panel">Loading signal…</div>}
+          {signal && <TradeSetup s={signal} />}
+          {trendcast && <TrendForecast f={trendcast} />}
+          {showPatterns && patterns && <PatternsPanel p={patterns} />}
+          {showPatterns && chartPatterns.length > 0 && <ChartPatternsPanel patterns={chartPatterns} />}
+          {marketCtx && <MarketContext c={marketCtx} />}
+          {(news || calendar.length > 0) && <NewsPanel news={news} events={calendar} />}
+        </div>
+      )}
 
       {view === "report" && (
         <div className="view-wrap"><ReportPage symbol={symbol} tf={tf} /></div>

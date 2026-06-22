@@ -1,12 +1,10 @@
 import type { SafetyInfo, MarketInfo } from "../types";
-import RiskMeter from "./RiskMeter";
 
 interface Props {
   bias?: "up" | "down" | "neutral";
   confidence?: number;
   safety?: SafetyInfo;
   market?: MarketInfo;
-  tf?: string;
   drawMode: "trendline" | "fib" | null;
   setDrawMode: (m: "trendline" | "fib" | null) => void;
   onClear: () => void;
@@ -16,8 +14,6 @@ interface Props {
   setShowAvgLine: (v: boolean) => void;
   showPatterns: boolean;
   setShowPatterns: (v: boolean) => void;
-  rightOpen: boolean;
-  onToggleRight: () => void;
 }
 
 const BIAS = {
@@ -29,15 +25,28 @@ const BIAS = {
 const SAFETY_TONE = { safe: "good", caution: "mixed", risky: "bad" } as const;
 const MARKET_TONE = { good: "good", mixed: "mixed", poor: "bad" } as const;
 
-/** Toolbar above the chart: bias chip + the two risk gauges + overlay toggles +
- *  drawing tools + a button to collapse the right panel. */
+/** Compact readable meter: a label, a green→red gradient bar with a marker at
+ *  the score, and the state word — much clearer than a tiny dial in a toolbar. */
+function MiniMeter({ name, score, tone, state }:
+  { name: string; score: number; tone: "good" | "mixed" | "bad"; state: string }) {
+  const pos = Math.max(0, Math.min(100, score));
+  return (
+    <span className={`tbm tbm-${tone}`} title={`${name}: ${state} (${score}/100)`}>
+      <span className="tbm-name">{name}</span>
+      <span className="tbm-bar"><span className="tbm-dot" style={{ left: `${pos}%` }} /></span>
+      <span className="tbm-state">{state}</span>
+    </span>
+  );
+}
+
+/** Toolbar above the chart: bias chip + the two risk meters + overlay toggles +
+ *  drawing tools. */
 export default function ChartToolbar({
-  bias, confidence, safety, market, tf, drawMode, setDrawMode, onClear,
+  bias, confidence, safety, market, drawMode, setDrawMode, onClear,
   showForecastHist, setShowForecastHist, showAvgLine, setShowAvgLine,
-  showPatterns, setShowPatterns, rightOpen, onToggleRight,
+  showPatterns, setShowPatterns,
 }: Props) {
   const b = bias ? BIAS[bias] : null;
-  const tfu = tf ? tf.toUpperCase() : "";
 
   return (
     <div className="charttb">
@@ -50,18 +59,12 @@ export default function ChartToolbar({
       )}
 
       {safety && (
-        <div className="charttb-meter">
-          <RiskMeter compact title={`Trade · ${tfu}`} score={safety.score}
-            tone={SAFETY_TONE[safety.level]} label={safety.level.toUpperCase()}
-            leftCap="SAFE" rightCap="RISKY" />
-        </div>
+        <MiniMeter name="TRADE" score={safety.score}
+          tone={SAFETY_TONE[safety.level]} state={safety.level.toUpperCase()} />
       )}
       {market && (
-        <div className="charttb-meter">
-          <RiskMeter compact title={`Market · ${tfu}`} score={market.score}
-            tone={MARKET_TONE[market.level]} label={market.level.toUpperCase()}
-            leftCap="GOOD" rightCap="CHOPPY" />
-        </div>
+        <MiniMeter name="MARKET" score={market.score}
+          tone={MARKET_TONE[market.level]} state={market.level.toUpperCase()} />
       )}
 
       <div className="charttb-spacer" />
@@ -89,11 +92,6 @@ export default function ChartToolbar({
           title="Fibonacci retracement">𝑭 Fib</button>
         <button className="tb-btn" onClick={onClear} title="Clear drawings">Clear</button>
       </div>
-
-      <button className="tb-collapse" onClick={onToggleRight}
-        title={rightOpen ? "Hide side panel" : "Show side panel"} aria-label="Toggle side panel">
-        {rightOpen ? "⟩" : "⟨"}
-      </button>
     </div>
   );
 }

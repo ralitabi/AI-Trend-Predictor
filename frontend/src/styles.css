@@ -506,15 +506,54 @@ body {
 .tb-btn:hover { color: var(--text); border-color: var(--accent); }
 .tb-btn.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
 
-/* small risk gauges inside the chart toolbar (beside the bias chip) — the extra
-   .riskmeter.compact specificity is needed to beat the default compact sizing */
-.charttb-meter { flex: 0 0 auto; }
-.charttb-meter .riskmeter { width: auto; gap: 0; }
-.charttb-meter .riskmeter.compact .rm-title { font-size: 7px; letter-spacing: 0.2px; margin-bottom: -6px; }
-.charttb-meter .riskmeter.compact .rm-svg { max-width: 66px; }
-.charttb-meter .riskmeter.compact .rm-end { display: none; }   /* hide SAFE/RISKY caps */
-.charttb-meter .riskmeter.compact .rm-readout { margin-top: -14px; }
-.charttb-meter .riskmeter.compact .rm-level { font-size: 9px; }
+/* compact, readable risk meters in the chart toolbar (gradient bar + marker) */
+.tbm {
+  display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px; border-radius: 8px;
+  background: var(--bg-elevated); border: 1px solid var(--border); white-space: nowrap;
+}
+.tbm-name { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; color: var(--text-dim); }
+.tbm-bar {
+  position: relative; width: 56px; height: 6px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--green), var(--amber), var(--red));
+}
+.tbm-dot {
+  position: absolute; top: 50%; width: 3px; height: 13px; border-radius: 1px; background: #fff;
+  transform: translate(-50%, -50%); box-shadow: 0 0 4px rgba(0, 0, 0, 0.7); transition: left 0.5s ease;
+}
+.tbm-state { font-size: 10px; font-weight: 800; letter-spacing: 0.3px; }
+.tbm-good .tbm-state { color: var(--green); }
+.tbm-mixed .tbm-state { color: var(--amber); }
+.tbm-bad .tbm-state { color: var(--red); }
+
+/* Fear & Greed vertical gauge on the left of the chart */
+.fgbar {
+  flex: 0 0 54px; display: flex; flex-direction: column; align-items: center; min-height: 0;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 8px 6px;
+}
+.fg-cap { font-size: 8px; font-weight: 700; letter-spacing: 0.4px; color: var(--text-dim); }
+.fg-track {
+  flex: 1; width: 10px; min-height: 0; margin: 8px 0; border-radius: 6px; position: relative;
+  background: linear-gradient(to top, #ea3943, #f5a623, #16c784);
+}
+.fg-dot {
+  position: absolute; left: 50%; width: 18px; height: 3px; border-radius: 2px; background: #fff;
+  transform: translate(-50%, 50%); transition: bottom 0.6s ease;
+  animation: fgpulse 1.6s ease-in-out infinite;
+}
+@keyframes fgpulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(255, 255, 255, 0.5); }
+  50% { box-shadow: 0 0 11px rgba(255, 255, 255, 0.95); }
+}
+.fg-val { margin-top: 6px; font-family: "JetBrains Mono", monospace; font-size: 13px; font-weight: 800; }
+.fg-ef { color: #ea3943; }
+.fg-f { color: #f5a623; }
+.fg-n { color: var(--text); }
+.fg-g { color: #9acd32; }
+.fg-eg { color: #16c784; }
+
+/* Signal view — analysis panels in a masonry of cards */
+.signal-view { columns: 350px; column-gap: 14px; max-width: 1180px; margin: 0 auto; }
+.signal-view > * { break-inside: avoid; margin-bottom: 14px; }
 
 /* collapse toggles */
 .tb-collapse {
@@ -1423,8 +1462,9 @@ body {
   .report-drawer:not(.collapsed) { width: 100% !important; }
   .report-resize { display: none; }
 
-  /* hide the side volume-profile strip on phones — the chart needs the width */
-  .volprofile { display: none; }
+  /* hide the side strips on phones — the chart needs the width */
+  .volprofile, .fgbar { display: none; }
+  .signal-view { columns: auto; }
 
   /* left rail is the bottom nav on phones — never let it collapse away */
   .rail-toggle { display: none; }
