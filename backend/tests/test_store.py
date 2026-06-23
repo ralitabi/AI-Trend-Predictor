@@ -47,6 +47,20 @@ def test_signal_snapshot_round_trip():
     assert rows[0]["resistance"] == 110.0
 
 
+def test_save_candles_is_incremental_and_idempotent():
+    base = [{"time": 1_700_000_000 + i * 3600, "open": 1.0, "high": 2.0, "low": 0.5,
+             "close": 1.5, "volume": 100} for i in range(5)]
+    assert store.save_candles("CNDL", "1h", base) == 5          # backfill all
+    assert store.save_candles("CNDL", "1h", base) == 1          # only the last (forming) re-written
+    more = base + [{"time": 1_700_000_000 + 5 * 3600, "open": 1.5, "high": 2.1,
+                    "low": 1.4, "close": 2.0, "volume": 120}]
+    assert store.save_candles("CNDL", "1h", more) == 2          # last existing + 1 new
+    hist = store.candle_history("CNDL", "1h")
+    assert len(hist) == 6
+    assert hist[-1]["close"] == 2.0
+    assert hist[0]["time"] < hist[-1]["time"]                   # chronological
+
+
 def test_mark_broadcast_dedupes_per_candle():
     assert store.mark_broadcast("BCAST", "1h", 1_700_000_000) is True
     assert store.mark_broadcast("BCAST", "1h", 1_700_000_000) is False  # same candle → skip

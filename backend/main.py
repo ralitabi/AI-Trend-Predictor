@@ -91,8 +91,25 @@ def _candles_for(symbol: str, tf: str, limit: int = 300) -> list[dict]:
     if tf not in TIMEFRAMES:
         raise HTTPException(400, f"Unsupported timeframe '{tf}'. Use one of {TIMEFRAMES}")
     if asset["source"] == "binance":
-        return crypto.fetch_candles(asset["symbol"], tf, limit)
-    return market.fetch_candles(asset["yahoo"], tf, limit)
+        data = crypto.fetch_candles(asset["symbol"], tf, limit)
+    else:
+        data = market.fetch_candles(asset["yahoo"], tf, limit)
+    _maybe_save_candles(asset["symbol"], tf, data)
+    return data
+
+
+def _maybe_save_candles(symbol: str, tf: str, data: list[dict]) -> None:
+    """Persist fetched candles, throttled to once per candle per market/timeframe
+    so the hot signal-poll path doesn't write every ~1.5s."""
+    try:
+        bucket = int(time.time()) // TF_SECONDS.get(tf, 3600)
+        ck = f"csave:{symbol}:{tf}:{bucket}"
+        if cache.get(ck):
+            return
+        cache.put(ck, True, ttl=TF_SECONDS.get(tf, 3600))
+        store.save_candles(symbol, tf, data)
+    except Exception:
+        pass  # candle persistence must never break a request
 
 
 def _maybe_log_signal(symbol: str, tf: str, analysis: dict, scored: dict) -> None:
@@ -599,3 +616,14 @@ def get_signal_history(symbol: str, tf: str | None = Query(None), limit: int = Q
     except KeyError as e:
         raise HTTPException(404, str(e))
     return {"symbol": asset["symbol"], "signals": store.signal_history(asset["symbol"], tf, limit)}
+
+
+@app.get("/saved-candles/{symbol}")
+def get_saved_candles(symbol: str, tf: str = Query("1h"), limit: int = Query(1000, le=5000)):
+    """The persisted OHLC candle history for this market/timeframe (durable when
+    Turso is configured)."""
+    try:
+        asset = get_asset(symbol)
+    except KeyError as e:
+        raise HTTPException(404, str(e))
+    return {"symbol": asset["symbol"], "tf": tf, "candles": store.candle_history(asset["symbol"], tf, limit)}

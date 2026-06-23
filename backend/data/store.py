@@ -109,6 +109,17 @@ def _create_schema(conn) -> None:
             PRIMARY KEY (symbol, tf, candle_time)
         )"""
     )
+    # raw OHLC candles — persisted as they're fetched so the price history is
+    # kept durably (beyond what the live feeds will re-serve later).
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS candles (
+            symbol TEXT NOT NULL,
+            tf TEXT NOT NULL,
+            time INTEGER NOT NULL,
+            open REAL, high REAL, low REAL, close REAL, volume REAL,
+            PRIMARY KEY (symbol, tf, time)
+        )"""
+    )
     conn.commit()
 
 
@@ -430,6 +441,49 @@ def mark_broadcast(symbol: str, tf: str, candle_time: int) -> bool:
             conn.close()
 
 
+def save_candles(symbol: str, tf: str, rows: list[dict]) -> int:
+    """Persist OHLC candles (idempotent). Incremental: only writes the latest
+    (forming) bar and any newer ones, so it's cheap to call on every fetch — but
+    backfills the whole window the first time for a market/timeframe."""
+    if not rows:
+        return 0
+    with _lock:
+        conn = _conn()
+        try:
+            r = conn.execute(
+                "SELECT MAX(time) m FROM candles WHERE symbol=? AND tf=?", (symbol, tf)).fetchone()
+            cutoff = r["m"] if r and r["m"] is not None else -1
+            n = 0
+            for c in rows:
+                if int(c["time"]) < cutoff:
+                    continue  # already stored
+                conn.execute(
+                    "INSERT OR REPLACE INTO candles (symbol, tf, time, open, high, low, close, volume)"
+                    " VALUES (?,?,?,?,?,?,?,?)",
+                    (symbol, tf, int(c["time"]), c["open"], c["high"], c["low"],
+                     c["close"], c.get("volume", 0)),
+                )
+                n += 1
+            conn.commit()
+            return n
+        finally:
+            conn.close()
+
+
+def candle_history(symbol: str, tf: str, limit: int = 1000) -> list[dict]:
+    with _lock:
+        conn = _conn()
+        try:
+            rows = conn.execute(
+                "SELECT time, open, high, low, close, volume FROM candles"
+                " WHERE symbol=? AND tf=? ORDER BY time DESC LIMIT ?",
+                (symbol, tf, limit),
+            ).fetchall()
+            return [dict(r) for r in reversed(rows)]
+        finally:
+            conn.close()
+
+
 def counts() -> dict:
     """Row counts per table — the health check uses this to show data is being
     saved (and how much)."""
@@ -437,7 +491,7 @@ def counts() -> dict:
         conn = _conn()
         try:
             out = {}
-            for table in ("predictions", "signals", "forecasts", "paper_trades"):
+            for table in ("predictions", "signals", "forecasts", "paper_trades", "candles"):
                 out[table] = conn.execute(f"SELECT COUNT(*) c FROM {table}").fetchone()["c"]
             last = conn.execute("SELECT MAX(ts) m FROM signals").fetchone()["m"]
             out["last_signal_ts"] = last
